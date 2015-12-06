@@ -1,0 +1,27 @@
+{
+  "name": "pavlok-api",
+  "version": "0.1.0",
+  "description": "A module to connect with Pavlok's API easily and quickly.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "pavlok",
+    "api",
+    "login",
+    "shock"
+  ],
+  "author": "Behavior Technology Group, Inc.",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.14.1",
+    "cookie-parser": "^1.4.0",
+    "express": "^4.13.3",
+    "open": "0.0.5",
+    "passport": "^0.3.2",
+    "passport-oauth": "^1.0.0",
+    "passport-oauth2": "^1.1.2",
+    "request": "^2.67.0"
+  }
+}
