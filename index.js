@@ -169,6 +169,10 @@ exports.login = function(cId, cSecret, debug, callback){
     signingIn = true;
 }
 
+/**
+  * Logout from this device. If you saved the auth token elsewhere, it
+  * will still work.
+  */  
 exports.logout = function(){
     clearTokenFile();
 }    
@@ -192,9 +196,11 @@ function genericCall(route, intensity, callback){
         return;
     }
 
-    if(intensity < 1 || intensity > 255){
-        callback(false, "Intensity outside accepted bounds!");
+    if(route == "beep" && (intensity < 1 || intensity > 4)){
+        callback(false, "Intensity must be between 1-4!");
         return;
+    } else if (intensity < 1 || intensity > 255){
+        callback(false, "Intensity must be between 1-255!");
     }
 
     request({
@@ -218,14 +224,32 @@ function genericCall(route, intensity, callback){
     });
 }
 
+/**
+  * Beep a Pavlok.
+  * @param value - The tone of beep, between 1-4.
+  * @param callback - A callback for success, with two arguments:
+                      a success boolean, and a message.
+  */
 exports.beep = function(value, callback){
     genericCall("beep", value, callback);
 }
 
+/**
+  * Vibrate a Pavlok.
+  * @param value - The intensity of vibration between 1-255.
+  * @param callback - A callback for success, with two arguments:
+                      a success boolean, and a message.
+  */
 exports.vibrate = function(value, callback){
     genericCall("vibration", value, callback);
 }
 
+/**
+  * Zap with a Pavlok.
+  * @param value - The intensity of zap, between 1-255.
+  * @param callback - A callback for success, with two arguments:
+                      a success boolean, and a message.
+  */
 exports.zap = function(value, callback){
     genericCall("shock", value, callback);
 }

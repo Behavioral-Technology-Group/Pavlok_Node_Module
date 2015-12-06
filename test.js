@@ -1,5 +1,6 @@
 var pavlok = require("./index.js");
 
+console.log("Testing...");
 pavlok.login( 
     //Client ID
     "9377ed97a2ccfd3bfd4b7a6d226e3f92504416ac5aeb6aa6fee96343e05fbc4e", 
@@ -17,6 +18,8 @@ pavlok.login(
                     console.log(result);
                     pavlok.zap(100, function(sucess, result){
                         console.log(result);
+                        pavlok.logout();
+                        console.log("Done testing; close browser to exit.");
                     });
                 });
             });
