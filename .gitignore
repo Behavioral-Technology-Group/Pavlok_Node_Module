@@ -1,2 +1,4 @@
-.swp
+*.swp
+pavlok-token.json
 node_modules/
+*.html~

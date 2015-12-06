@@ -14,6 +14,9 @@ var passport = require('passport');
 var oauth = require('passport-oauth');
 var OAuth2Strategy = oauth.OAuth2Strategy;
 
+//Request to query API
+var request = require('request');
+
 const PORT = 3000;
 const TOKEN_FILENAME  = "./pavlok-token.json";
 
@@ -34,6 +37,16 @@ function createTokenFile(){
         tokenFile = skeletonObject;
     } catch(e) {
         throw "Can't access disk for saving token for Pavlok API!";
+    }
+}
+
+function clearTokenFile(){
+    try {
+        tokenFile.token = null;
+        code = null;
+        fs.unlinkSync(TOKEN_FILENAME);
+    } catch(e) {
+        throw "Couldn't delete auth token!";
     }
 }
 
@@ -157,37 +170,62 @@ exports.login = function(cId, cSecret, debug, callback){
 }
 
 exports.logout = function(){
-    //TODO in a bit; fs.unlink(..)
-}
-    
-function checkState(){
-    if(signingIn) return "Please wait until login completes."
-    if(code == null) return "Please use login(...) before using the API."
-    return null;
-}
+    clearTokenFile();
+}    
 
-function checkValid(call){
-    code = null;
-    return "Call failed! Your auth token is no longer valid; sign-in again.";
+function genericCall(route, intensity, callback){
+    var address = "http://pavlok-mvp.herokuapp.com/api/v1/stimuli/"
+            + route + "/" + intensity;
+    var queryParams = {
+            access_token: code,
+            time: new Date()
+    };
+
+    log("Trying to " + route + " with " + intensity + "...");
+    if(signingIn){
+        callback(false, "Please wait until login completes.");
+        return;
+    }
+
+    if(code == null){
+        callback(false, "Please login before using the API.");
+        return;
+    }
+
+    if(intensity < 1 || intensity > 255){
+        callback(false, "Intensity outside accepted bounds!");
+        return;
+    }
+
+    request({
+        url: address,
+        qs: queryParams,
+        method: 'POST',
+    }, function(error, response, body){
+        if(error){
+            callback(false, error);
+        } else {
+            if (response.statusCode == 401) {
+                clearTokenFile();
+                callback(false, "Your auth token has expired!");
+            } else if (response.statusCode == 200) {
+                callback(true, route + " sent.");
+            } else {
+                callback(false, route + " returned unknown code: " + 
+                    response.statusCode + ".");
+            }
+        }
+    });
 }
 
 exports.beep = function(value, callback){
-    var ready = checkState();
-    if(ready != null) callback(false, ready);
-
-    log("Trying to beep with " + value + "...");
+    genericCall("beep", value, callback);
 }
 
 exports.vibrate = function(value, callback){
-    var ready = checkState();
-    if(ready != null) callback(false, ready);
-
-    log("Trying to vibrate with " + value + "...");
+    genericCall("vibration", value, callback);
 }
 
 exports.zap = function(value, callback){
-    var ready = checkState();
-    if(ready != null) callback(false, ready);
-
-    log("Trying to zap with " + value + "...");
+    genericCall("shock", value, callback);
 }

@@ -11,8 +11,14 @@ pavlok.login(
     function(result, token){
         if(result){
             console.log("Our auth token is: " + token);
-            pavlok.beep(100, function(success, result){
+            pavlok.beep(1, function(success, result){
                 console.log(result);
+                pavlok.vibrate(100, function(success, result){
+                    console.log(result);
+                    pavlok.zap(100, function(sucess, result){
+                        console.log(result);
+                    });
+                });
             });
         } else {
             console.log("Failed to get auth token...");
