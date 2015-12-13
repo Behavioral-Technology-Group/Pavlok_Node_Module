@@ -22,7 +22,6 @@ pavlok.login(
                     console.log(result);
                     pavlok.zap(100, function(sucess, result){
                         console.log(result);
-                        pavlok.logout();
                         console.log("Done testing; close browser to exit.");
                     });
                 });
