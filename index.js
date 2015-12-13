@@ -17,8 +17,8 @@ var OAuth2Strategy = oauth.OAuth2Strategy;
 //Request to query API
 var request = require('request');
 
-const PORT = 3000;
-const TOKEN_FILENAME  = "./pavlok-token.json";
+var PORT = 3000;
+var TOKEN_FILENAME  = "./pavlok-token.json";
 
 //Support functions
 function log(msg){
@@ -120,17 +120,39 @@ var exports = module.exports = {};
 
 /**
   Login into Pavlok's API. Note that this relies on Node being able to listen
-  on port 3000, and Node being able to write to ./pavlok-token.json.
+  on port 3000 (or a port passed in options), and Node being able to write to 
+  ./pavlok-token.json.
   
   @param {String} Client ID
   @param {String} Client secret
-  @param {Boolean} Verbose debugging
+  @param {Object} options - Custom options for setup. Optional. Accepts
+                            a port ("port", number), callback URL ("callbackUrl",
+                            string), verbose debugging ("verbose", boolean) option. 
   @param {Function} callback - Callback with two arrguments. First argument 
                                is true or false depending on success/failure,
                                and the second is the auth token on success.
-**/
-exports.login = function(cId, cSecret, debug, callback){
-    verbose = debug;
+ **/
+exports.login = function(cId, cSecret, options, callback){
+    var callbackUrl = null;
+    var port = PORT;
+    
+    //Setup from options
+    if(options !== undefined && typeof options == "object"){
+        if(options.port !== undefined && typeof options.port == "number") 
+            port = options.port;        
+        if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string")
+            callbackUrl = options.callbackUrl;
+        if(options.verbose !== undefined && typeof options.verbose == "boolean")
+            verbose = options.verbose; //Sets a global; persists after login
+    } else {
+        //Options has been left out; options is callback
+        callback = options;
+    }
+
+    if(callbackUrl == null){
+        callbackUrl = "http://localhost:" + port + "/auth/pavlok/result";
+    }
+
     if(code != null){
         log("Code loaded from disk: " + code);
         callback(true, code);
@@ -139,8 +161,8 @@ exports.login = function(cId, cSecret, debug, callback){
         log("Unable to load code from disk; starting server...");
     }
         
-    server = app.listen(PORT, function(){
-        open("http://localhost:3000/auth/pavlok");
+    server = app.listen(port, function(){
+        open("http://localhost:" + port + "/auth/pavlok");
     });
        
     passport.use(new OAuth2Strategy({
@@ -148,7 +170,7 @@ exports.login = function(cId, cSecret, debug, callback){
         tokenURL: "http://pavlok-mvp.herokuapp.com/oauth/token",
         clientID: cId,
         clientSecret: cSecret,
-        callbackURL: "http://localhost:3000/auth/pavlok/result"    
+        callbackURL: callbackUrl
     },
     function(token, tokenRefresh, profile, done){
         if(token != null){
