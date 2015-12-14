@@ -1,7 +1,9 @@
 var pavlok = require("./index");
 
 console.log("Testing...");
-pavlok.login( 
+pavlok.login(
+    //NOTE: Don't expect these client ID/client secrets to work.
+
     //Client ID
     "9377ed97a2ccfd3bfd4b7a6d226e3f92504416ac5aeb6aa6fee96343e05fbc4e", 
     //Client secret

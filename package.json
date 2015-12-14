@@ -4,7 +4,7 @@
   "description": "A module to connect with Pavlok's API easily and quickly.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "keywords": [
     "pavlok",
@@ -18,6 +18,7 @@
     "body-parser": "^1.14.1",
     "cookie-parser": "^1.4.0",
     "express": "^4.13.3",
+    "mocha": "^2.3.4",
     "open": "0.0.5",
     "passport": "^0.3.2",
     "passport-oauth": "^1.0.0",
