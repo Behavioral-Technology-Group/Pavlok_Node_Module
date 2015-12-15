@@ -18,7 +18,7 @@ var OAuth2Strategy = oauth.OAuth2Strategy;
 var request = require('request');
 
 var PORT = 3000;
-var TOKEN_FILENAME  = "./pavlok-token.json";
+var TOKEN_FILENAME  = __dirname + "/pavlok-token.json";
 
 //Support functions
 function log(msg){
@@ -51,10 +51,10 @@ function clearTokenFile(){
 }
 
 try {
-    tokenFile = require(TOKEN_FILENAME);
+    tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
 } catch (e) {
     createTokenFile();
-    tokenFile = require(TOKEN_FILENAME);
+    tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
 }
 
 function saveTokenFile(token){
@@ -80,23 +80,23 @@ if(tokenFromFile != null){
 //Setup Express server; used to handle OAuth2 results
 var app = express();
 var server;
-app.use(express.static('public'));
+app.use(express.static(__dirname + '/public'));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(passport.initialize());
 app.use(passport.session());
 
 app.get("/", function(request, result){
-    result.redirect("/index.html");
+    result.redirect("index.html");
 });
 
 app.get("/done", function(request, result){
-    result.redirect("/done.html");
+    result.redirect("done.html");
     if(code != null) server.close();
 });
 
 app.get("/error", function(request, result){
-    result.redirect("/error.html");
+    result.redirect("error.html");
 });
 
 app.get("/auth/pavlok",
