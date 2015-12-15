@@ -66,8 +66,8 @@ client secret (copy these down, and don't share them!).
 
 After setting this up, you'll need to create a Node module
 (`npm init` from your terminal/command line). Next, download the
-Pavlok module ('npm install --save pavlok-api'). Create a .js 
-file (e.g. `index.js`), and require Pavlok (`var pavlok = require('pavlok-api').
+Pavlok module ('npm install --save pavlok-beta-api-login'). Create a .js 
+file (e.g. `index.js`), and require Pavlok (`var pavlok = require('pavlok-beta-api-login').
 
 Copy the code under the authentication header, substituing in your client ID 
 and secret. Once the callback returns, you're ready to start using 
