@@ -6,7 +6,7 @@ enabled environment.
 
 Using this module requires:
     + Permission to listen on one of your computer's ports.
-    + A client ID/client secret; see [here](http://pavlok-mvp.herokuapp.com/oauth/applications) and login with your Pavlok account to get one. You'll need to choose a callback URL of "http://localhost:3000/auth/pavlok/result" (custom callback URLs are also supported; see below).
+    + A client ID/client secret; see [here](http://pavlok-stage.herokuapp.com/oauth/applications) and login with your Pavlok account to get one. You'll need to choose a callback URL of "http://localhost:3000/auth/pavlok/result" (custom callback URLs are also supported; see below).
     + A web browser
     + Permission to write to the file system (to save the auth token).
 
@@ -52,7 +52,7 @@ mind the requirements and limiations documents under the 'Purpose' heading, but
 if you're looking to do some simple scripting, you should be in for a pretty 
 easy ride.
 
-To get started, you're going to need credentials for the Pavlok API. You need to get started at the [Pavlok website](http://pavlok-mvp.herokuapp.com) by creating an account or signing in. The next step is to go [here](http://pavlok-mvp.herokuapp.com/oauth/applications), click 'New Application', and give it a name. In the field labeled Redirect URI, set the first line to "urn:ietf:wg:oauth:2.0:oob" and the second line to 'http://localhost:3000/auth/pavlok/result' (you can also use a custom redirect URI so long as you reference its port and name in the optional options object passed to login(...)). You should be able to click on the app's name from the Application page to see its client ID and client secret (copy these down, and don't share them!).
+To get started, you're going to need credentials for the Pavlok API. You need to get started at the [Pavlok website](http://pavlok-stage.herokuapp.com) by creating an account or signing in. The next step is to go [here](http://pavlok-stage.herokuapp.com/oauth/applications), click 'New Application', and give it a name. In the field labeled Redirect URI, set the first line to "urn:ietf:wg:oauth:2.0:oob" and the second line to 'http://localhost:3000/auth/pavlok/result' (you can also use a custom redirect URI so long as you reference its port and name in the optional options object passed to login(...)). You should be able to click on the app's name from the Application page to see its client ID and client secret (copy these down, and don't share them!).
 
 After setting this up, you'll need to create a Node module
 (`npm init` from your terminal/command line). Next, download the

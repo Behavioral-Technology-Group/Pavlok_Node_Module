@@ -5,9 +5,9 @@ pavlok.login(
     //NOTE: Don't expect these client ID/client secrets to work.
 
     //Client ID
-    "badclientid",
+    "a10cfc91fec94419021b1faf0e05c5bd1ec2f1e4039c1ec5f038e498b432ac36",
     //Client secret
-    "badsecret",
+    "c17ac1c03d406bfe924ede09e6fd79802138f206cb60323c724a9266b485283a",
     //Options -- this is optional
     {
         callbackUrl: "http://localhost:3000/auth/pavlok/result", //Default

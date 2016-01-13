@@ -166,8 +166,8 @@ exports.login = function(cId, cSecret, options, callback){
     });
        
     passport.use(new OAuth2Strategy({
-        authorizationURL: "http://pavlok-mvp.herokuapp.com/oauth/authorize",
-        tokenURL: "http://pavlok-mvp.herokuapp.com/oauth/token",
+        authorizationURL: "http://pavlok-stage.herokuapp.com/oauth/authorize",
+        tokenURL: "http://pavlok-stage.herokuapp.com/oauth/token",
         clientID: cId,
         clientSecret: cSecret,
         callbackURL: callbackUrl
@@ -200,7 +200,7 @@ exports.logout = function(){
 }    
 
 function genericCall(route, intensity, callback){
-    var address = "http://pavlok-mvp.herokuapp.com/api/v1/stimuli/"
+    var address = "http://pavlok-stage.herokuapp.com/api/v1/stimuli/"
             + route + "/" + intensity;
     var queryParams = {
             access_token: code,
