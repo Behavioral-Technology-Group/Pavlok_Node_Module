@@ -1,6 +1,6 @@
 {
   "name": "pavlok-beta-api-login",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "A module to connect with Pavlok's API easily and quickly.",
   "main": "index.js",
   "scripts": {
