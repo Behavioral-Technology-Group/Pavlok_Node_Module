@@ -31,10 +31,9 @@ function createTokenFile(){
     try {
         var skeletonObject = {
             token: null
-        }
-        fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(skeletonObject, null,
-            2));
-        tokenFile = skeletonObject;
+        };
+		tokenFile = skeletonObject;
+        fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(skeletonObject, null, 2));
     } catch(e) {
         throw "Can't access disk for saving token for Pavlok API!";
     }
@@ -53,8 +52,10 @@ function clearTokenFile(){
 try {
     tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
 } catch (e) {
-    createTokenFile();
-    tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
+    try {
+		createTokenFile();
+		tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
+	} catch (ignored) {} //Will happen on systems without file I/O access
 }
 
 function saveTokenFile(token){
@@ -62,7 +63,7 @@ function saveTokenFile(token){
         tokenFile.token = token;    
         code = token;
         signingIn = false;
-        fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(tokenFile, null, 2));
+        if(save) fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(tokenFile, null, 2));
     } catch(e) {
         throw "Can't access disk to save Pavlok auth token!";
     }
@@ -70,6 +71,7 @@ function saveTokenFile(token){
 
 var tokenFromFile = tokenFile.token;
 
+var save = true;
 var verbose = false;
 var signingIn = false;
 var code = null;
@@ -138,11 +140,19 @@ exports.login = function(cId, cSecret, options, callback){
     
     //Setup from options
     if(options !== undefined && typeof options == "object"){
-        if(options.port !== undefined && typeof options.port == "number") 
+        if(options.save != undefined && typeof options.save == "boolean"){
+			save = options.save;
+		} else {
+			save = true;
+		}
+
+		if(options.port !== undefined && typeof options.port == "number") 
             port = options.port;        
-        if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string")
+        
+		if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string")
             callbackUrl = options.callbackUrl;
-        if(options.verbose !== undefined && typeof options.verbose == "boolean")
+        
+		if(options.verbose !== undefined && typeof options.verbose == "boolean")
             verbose = options.verbose; //Sets a global; persists after login
     } else {
         //Options has been left out; options is callback
@@ -154,11 +164,11 @@ exports.login = function(cId, cSecret, options, callback){
     }
 
     if(code != null){
-        log("Code loaded from disk: " + code);
+        log("Code loaded: " + code);
         callback(true, code);
         return;
     } else {
-        log("Unable to load code from disk; starting server...");
+        if(save) log("Unable to load code from disk; starting server...");
     }
         
     server = app.listen(port, function(){
@@ -174,7 +184,7 @@ exports.login = function(cId, cSecret, options, callback){
     },
     function(token, tokenRefresh, profile, done){
         if(token != null){
-            log("Saving " + token + " token to disk...");
+            if(save) log("Saving " + token + " token to disk...");
             saveTokenFile(token);
             signingIn = false;
             callback(true, token);

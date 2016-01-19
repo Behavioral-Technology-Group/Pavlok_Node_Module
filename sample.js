@@ -12,7 +12,8 @@ pavlok.login(
     {
         callbackUrl: "http://localhost:3000/auth/pavlok/result", //Default
         port: 3000, //This is also the default
-        verbose: true //Verbose is usually false
+        verbose: true, //Verbose is usually false
+		save: false //Usually true
     },
     //Callback function
     function(result, token){
