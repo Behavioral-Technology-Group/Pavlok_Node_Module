@@ -17,6 +17,7 @@ var OAuth2Strategy = oauth.OAuth2Strategy;
 //Request to query API
 var request = require('request');
 
+var BASE_URL = "http://pavlok-stage.herokuapp.com";
 var PORT = 3000;
 var TOKEN_FILENAME  = __dirname + "/pavlok-token.json";
 
@@ -146,6 +147,9 @@ exports.login = function(cId, cSecret, options, callback){
 			save = true;
 		}
 
+		if(options.apiUrl !== undefined && typeof options.callbackUrl == "string")
+			BASE_URL = options.apiUrl;
+
 		if(options.port !== undefined && typeof options.port == "number") 
             port = options.port;        
         
@@ -176,8 +180,8 @@ exports.login = function(cId, cSecret, options, callback){
     });
        
     passport.use(new OAuth2Strategy({
-        authorizationURL: "http://pavlok-stage.herokuapp.com/oauth/authorize",
-        tokenURL: "http://pavlok-stage.herokuapp.com/oauth/token",
+        authorizationURL: BASE_URL + "/oauth/authorize",
+        tokenURL: BASE_URL + "/oauth/token",
         clientID: cId,
         clientSecret: cSecret,
         callbackURL: callbackUrl
@@ -210,7 +214,7 @@ exports.logout = function(){
 }    
 
 function genericCall(route, intensity, callback){
-    var address = "http://pavlok-stage.herokuapp.com/api/v1/stimuli/"
+    var address = BASE_URL + "/api/v1/stimuli/"
             + route + "/" + intensity;
     var queryParams = {
             access_token: code,
