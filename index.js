@@ -25,7 +25,7 @@ var BASE_URL = "http://pavlok-mvp.herokuapp.com";
 var PORT = 3000;
 var TOKEN_FILENAME  = __dirname + "/pavlok-token.json";
 var VERBOSE = false;
-var SAVE = false;
+var SAVE = true;
 var CLIENT_ID = null;
 var CLIENT_SECRET = null;
 var CALLBACK_URL = null;
@@ -70,7 +70,7 @@ function saveTokenFile(token){
         tokenFile.token = token;    
         code = token;
         signingIn = false;
-        if(save) fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(tokenFile, null, 2));
+        if(SAVE) fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(tokenFile, null, 2));
     } catch(e) {
         throw "Can't access disk to save Pavlok auth token!";
     }
@@ -96,7 +96,7 @@ try {
 }
 
 if(tokenFile.token != null){
-    code = tokenFile.file;
+    code = tokenFile.token;
 }
 
 
@@ -164,11 +164,8 @@ exports.init = function(cId, cSecret, options){
 
 		if(options == undefined) options = {};
 
-		if(options.save != undefined && typeof options.save == "boolean"){
-			save = options.save;
-		} else {
-			save = true;
-		}
+		if(options.save != undefined && typeof options.save == "boolean")
+			SAVE = options.save;
 
 		if(options.apiUrl !== undefined && typeof options.callbackUrl == "string")
 			BASE_URL = options.apiUrl;
@@ -217,7 +214,7 @@ exports.login = function(cId, cSecret, options, callback){
         callback(true, code);
         return;
     } else {
-        if(save) log("Unable to load code from disk; starting server...");
+        if(SAVE) log("Unable to load code from disk; starting server...");
     }
         
     server = app.listen(PORT, function(){
@@ -233,7 +230,7 @@ exports.login = function(cId, cSecret, options, callback){
     },
     function(token, tokenRefresh, profile, done){
         if(token != null){
-            if(save) log("Saving " + token + " token to disk...");
+            if(SAVE) log("Saving " + token + " token to disk...");
             saveTokenFile(token);
             signingIn = false;
             callback(true, token);
@@ -261,7 +258,14 @@ exports.logout = function(){
 function genericCall(route, intensity, callback){
     var address = BASE_URL + "/api/v1/stimuli/" + route + "/" + intensity;
 	var hasCallback = (callback !== undefined); 
-    var queryParams = {
+	if(intensity === undefined){
+		if(route == "beep"){
+			intesity = 2;
+		} else {
+			intensity = 50;	
+		}
+	}
+	var queryParams = {
             access_token: code,
             time: new Date()
     };

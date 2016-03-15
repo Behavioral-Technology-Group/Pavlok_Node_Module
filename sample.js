@@ -22,7 +22,7 @@ pavlok.login(function(result, token){
             pavlok.beep(1, function(success, result){
                 console.log(result);
                 pavlok.vibrate(100); //Calls without callbacks
-                pavlok.zap(100); 
+                pavlok.zap(); //Look ma, no value!
 		console.log("Done testing (just sent a vibrate and zap too).");
 		console.log("Close your browser to automatically exit.");
             });
