@@ -29,6 +29,7 @@ var SAVE = true;
 var CLIENT_ID = null;
 var CLIENT_SECRET = null;
 var CALLBACK_URL = null;
+var ALERT_TEXT = "Sent from Node Module.";
 
 
 
@@ -152,9 +153,11 @@ var exports = module.exports = {};
  
   @param {String} Client ID - The OAuth2 client ID.
   @param {String} Client secret - The OAuth2 client secret.
-  @param {Object} options - Custom setup options. Accepts a port ("port", number"),
-			    callback URL ("callbackUrl", string), and a verbose 
-			    debugging option ("verbose", boolean).
+  @param {Object} options - Custom setup options. Accepts a port ("port",
+				 number), callback URL ("callbackUrl", string), a verbose 
+			    debugging option ("verbose", boolean), an option to save
+				the token ("save", boolean), and a default value for
+				alert text ("message", string).
  **/
 exports.init = function(cId, cSecret, options){
 	if(cId !== undefined && cSecret != undefined && typeof cId == "string" 
@@ -167,17 +170,22 @@ exports.init = function(cId, cSecret, options){
 		if(options.save != undefined && typeof options.save == "boolean")
 			SAVE = options.save;
 
-		if(options.apiUrl !== undefined && typeof options.callbackUrl == "string")
+		if(options.apiUrl !== undefined && 
+			typeof options.callbackUrl == "string")
 			BASE_URL = options.apiUrl;
 
 		if(options.port !== undefined && typeof options.port == "number") 
             PORT = options.port;        
         
-		if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string")
+		if(options.callbackUrl !== undefined &&
+			typeof options.callbackUrl == "string")
             CALLBACK_URL = options.callbackUrl;
         
 		if(options.verbose !== undefined && typeof options.verbose == "boolean")
-            VERBOSE = options.verbose; //Sets a global; persists after login
+            VERBOSE = options.verbose; 
+
+		if(options.message !== undefined && typeof options.message == "string")
+			ALERT_TEXT = options.message;
 	} else {
 		console.log("Invalid init params!");	
 	} 
@@ -255,37 +263,85 @@ exports.logout = function(){
     clearTokenFile();
 }    
 
-function genericCall(route, intensity, callback){
-    var address = BASE_URL + "/api/v1/stimuli/" + route + "/" + intensity;
-	var hasCallback = (callback !== undefined); 
-	if(intensity === undefined){
-		if(route == "beep"){
-			intesity = 2;
-		} else {
-			intensity = 50;	
+function genericCall(route, options){
+	//Rejigger what's in opts if stuff has been omitted
+	//Messy; .zap/.beep/etc. should've originally had options bundles, but
+	//instead had args, leading to this mess...
+	var intensityType = typeof options.intensity;
+	var messageType = typeof options.message;
+	var callbackType = typeof options.callback;
+
+	if(intensityType != "undefined"){ //>= 1 opt
+		if(messageType != "undefined"){ //>= 2 opts
+			if(callbackType != "undefined"){ //3 opts
+				//We're actually good if we have 3 opts -- no back. comp. issue
+			} else { //Figure out what intensity and message _really_ are
+				if(intensityType != "number"){ //A message, then
+					options.callback = options.message;
+					options.message = options.intensity;
+					options.intensity = undefined;
+				} else { //Only other bad combo is callback in message slot
+					if(messageType == "function"){
+						options.callback = options.message;
+						options.message = undefined;
+					}
+				}
+			}
+		} else { //Just 1 opt -- figure out what it is and null all else
+			var temp = options.intensity;
+			options.intensity = undefined;
+			options.callback = undefined;
+			options.message = undefined;
+
+			if(intensityType == "number"){
+				options.intensity = temp;
+			} else if (intensityType == "string"){
+				options.message = temp;
+			} else {
+				options.callback = temp;
+			}
 		}
 	}
+
+    var message = ALERT_TEXT;
+    if(options.message !== undefined && typeof options.message == "string"){
+		message = options.message;		
+    }
+	var intensity = (route == "beep" ? 2 : 50);
+	if(options.intensity !== undefined && typeof options.intensity == "number"){
+		intensity = options.intensity;
+	}
+	var callback = function(res, reason){};
+	if(options.callback !== undefined && typeof options.callback == "function"){
+		callback = options.callback;
+	}
+
+    var address = BASE_URL + "/api/v1/stimuli/" + route + "/" + intensity;
 	var queryParams = {
-            access_token: code,
-            time: new Date()
+        access_token: code,
+	    reason: message,
+        time: new Date()
     };
 
     log("Trying to " + route + " with " + intensity + "...");
-    if(signingIn){
-        if(hasCallback) callback(false, "Please wait until login completes.");
+    
+	//Verify parameter values
+	if(signingIn){
+        callback(false, "Please wait until login completes.");
         return;
     }
 
     if(code == null){
-        if(hasCallback) callback(false, "Please login before using the API.");
+        callback(false, "Please login before using the API.");
         return;
     }
 
     if(route == "beep" && (intensity < 1 || intensity > 4)){
-        if(hasCallback) callback(false, "Intensity must be between 1-4!");
+        callback(false, "Intensity must be between 1-4!");
         return;
     } else if (intensity < 1 || intensity > 255){
-        if(hasCallback) callback(false, "Intensity must be between 1-255!");
+        callback(false, "Intensity must be between 1-255!");
+		return;
     }
 
     request({
@@ -294,16 +350,17 @@ function genericCall(route, intensity, callback){
         method: 'POST',
     }, function(error, response, body){
         if(error){
-            if(hasCallback) callback(false, error);
+            callback(false, error);
         } else {
             if (response.statusCode == 401) {
                 clearTokenFile();
 				code = null;
-                if(hasCallback) callback(false, "Your auth token has expired!");
+                callback(false, "Your auth token has expired!");
             } else if (response.statusCode == 200) {
-                if(hasCallback) callback(true, route + " sent.");
+                callback(true, route + " sent.");
             } else {
-                if(hasCallback) callback(false, route + " returned unknown code: " + response.statusCode + ".");
+                callback(false, route + " returned unknown code: " + 
+					response.statusCode + ".");
             }
         }
     });
@@ -312,29 +369,44 @@ function genericCall(route, intensity, callback){
 /**
   * Beep a Pavlok.
   * @param value - The tone of beep, between 1-4.
+  * @param message - The message to include with the stimuli.
   * @param callback - A callback for success, with two arguments:
                       a success boolean, and a message.
   */
-exports.beep = function(value, callback){
-    genericCall("beep", value, callback);
+exports.beep = function(value, message, callback){
+    genericCall("beep", {
+		intensity: value, 
+		message: message, 
+		callback: callback
+	});
 }
 
 /**
   * Vibrate a Pavlok.
   * @param value - The intensity of vibration between 1-255.
+  * @param message - The message to include with the stimuli.
   * @param callback - A callback for success, with two arguments:
                       a success boolean, and a message.
   */
-exports.vibrate = function(value, callback){
-    genericCall("vibration", value, callback);
+exports.vibrate = function(value, message, callback){
+    genericCall("vibration", {
+		intensity: value,
+		message: message,
+		callback: callback
+	});
 }
 
 /**
   * Zap with a Pavlok.
   * @param value - The intensity of zap, between 1-255.
+  * @param message - The message to include with the stimuli.
   * @param callback - A callback for success, with two arguments:
                       a success boolean, and a message.
   */
-exports.zap = function(value, callback){
-    genericCall("shock", value, callback);
+exports.zap = function(value, message, callback){
+    genericCall("shock", {
+		intensity: value, 
+		message: message, 
+		callback: callback
+	});
 }

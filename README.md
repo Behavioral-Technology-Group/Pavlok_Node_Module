@@ -25,8 +25,9 @@ pavlok.login(function(result, code){
 If you like, you may also pass an options object to `init(...)`. It takes 
 in `port`, a number, `callbackUrl`, a custom callback URL after the OAuth
 is done, `save`, a boolean value that lets you choose whether to save the 
-auth code, and `verbose`, a boolean value for whether you'd like debugging
-output.
+auth code, `verbose`, a boolean value for whether you'd like debugging
+output, and `message`, a string value for the default message to send with 
+stimuli.
 
 ### Use
 Each API function is single-shot, and, if they fail on the device they're
@@ -44,10 +45,10 @@ function callback(success, message){
     }
 }
 ```
-Zapping is done with `pavlok.zap(intensity, callback); //Intensity from 1-255`. 
-Beeping is achieved with `pavlok.beep(tone, callback); //Beep from 1-4`.
-Vibrating is done with `pavlok.vibrate(intensity, callback); //Vibrate from 1-255`.
-You may omit both the intensity and callback if you wish.
+Zapping is done with `pavlok.zap(intensity, message, callback); //Intensity from 1-255`. 
+Beeping is achieved with `pavlok.beep(tone, message, callback); //Beep from 1-4`.
+Vibrating is done with `pavlok.vibrate(intensity, message,  callback); //Vibrate from 1-255`.
+You may omit any of the parameters if you wish.
 
 ### Walkthrough
 Writing a script using this module is a pretty straightfoward process. Keep in 

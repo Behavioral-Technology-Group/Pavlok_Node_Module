@@ -13,16 +13,17 @@ pavlok.init(
         callbackUrl: "http://localhost:3000/auth/pavlok/result", //Default
 	port: 3000, //This is also the default
         verbose: true, //Verbose is usually false
-	save: true //Usually true
+	save: true, //Usually true
+	message: "The included sample app." //A message for the notifications
     });
     
 pavlok.login(function(result, token){
         if(result){
             console.log("Our auth token is: " + token);
-            pavlok.beep(1, function(success, result){
+            pavlok.beep(3, function(success, result){
                 console.log(result);
-                pavlok.vibrate(100); //Calls without callbacks
-                pavlok.zap(); //Look ma, no value!
+                pavlok.vibrate(100, "A vibration!"); //Calls without callbacks
+                pavlok.zap("A zap, it seems."); //Look ma, no value!
 		console.log("Done testing (just sent a vibrate and zap too).");
 		console.log("Close your browser to automatically exit.");
             });
