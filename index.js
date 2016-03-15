@@ -1,4 +1,4 @@
-//Write token to filesystem
+//For writing the token to the filesystem
 var fs = require('fs');
 
 //Open browser
@@ -17,17 +17,42 @@ var OAuth2Strategy = oauth.OAuth2Strategy;
 //Request to query API
 var request = require('request');
 
-var BASE_URL = "http://pavlok-stage.herokuapp.com";
+
+
+
+//'Constants' (can be altered with the options bundle/init)
+var BASE_URL = "http://pavlok-mvp.herokuapp.com";
 var PORT = 3000;
 var TOKEN_FILENAME  = __dirname + "/pavlok-token.json";
+var VERBOSE = false;
+var SAVE = false;
+var CLIENT_ID = null;
+var CLIENT_SECRET = null;
+var CALLBACK_URL = null;
 
-//Support functions
+
+
+
+//Fields
+var tokenFile = null; //A representation of the token file on disk
+var signingIn = null; //Are we signing in?
+var code = null; //The fetched auth code
+
+var app; //The representation of the program
+var server; //The Express server
+
+
+
+
+/** Support functions **/
 function log(msg){
-    if(verbose) console.log("[Pavlok API] " + msg);
+    if(VERBOSE) console.log("[Pavlok API] " + msg);
 }
 
-//Setup auth token loading
-var tokenFile;
+
+
+
+/** Load the auth token from disk **/
 function createTokenFile(){
     try {
         var skeletonObject = {
@@ -37,6 +62,17 @@ function createTokenFile(){
         fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(skeletonObject, null, 2));
     } catch(e) {
         throw "Can't access disk for saving token for Pavlok API!";
+    }
+}
+
+function saveTokenFile(token){
+    try {
+        tokenFile.token = token;    
+        code = token;
+        signingIn = false;
+        if(save) fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(tokenFile, null, 2));
+    } catch(e) {
+        throw "Can't access disk to save Pavlok auth token!";
     }
 }
 
@@ -59,56 +95,42 @@ try {
 	} catch (ignored) {} //Will happen on systems without file I/O access
 }
 
-function saveTokenFile(token){
-    try {
-        tokenFile.token = token;    
-        code = token;
-        signingIn = false;
-        if(save) fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(tokenFile, null, 2));
-    } catch(e) {
-        throw "Can't access disk to save Pavlok auth token!";
-    }
+if(tokenFile.token != null){
+    code = tokenFile.file;
 }
 
-var tokenFromFile = tokenFile.token;
 
-var save = true;
-var verbose = false;
-var signingIn = false;
-var code = null;
-if(tokenFromFile != null){
-    code = tokenFromFile;
-}
 
-//Setup Express server; used to handle OAuth2 results
-var app = express();
-var server;
+
+/** Setup the Express server; used to handle OAuth2 results **/
+app = express();
 app.use(express.static(__dirname + '/public'));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(passport.initialize());
 app.use(passport.session());
-
-app.get("/", function(request, result){
+app.get("/", 
+	function(request, result)
+	{
     result.redirect("index.html");
-});
-
-app.get("/done", function(request, result){
+	});
+app.get("/done",
+	function(request, result)
+	{
     result.redirect("done.html");
     if(code != null) server.close();
-});
-
-app.get("/error", function(request, result){
+	});
+app.get("/error", 
+	function(request, result)
+	{
     result.redirect("error.html");
-});
-
+	});
 app.get("/auth/pavlok",
     passport.authenticate("oauth2",
     {
         "session": false,
         "failureRedirect": "/error"
     }));
-
 app.get("/auth/pavlok/result",
     passport.authenticate("oauth2", 
     { 
@@ -117,31 +139,32 @@ app.get("/auth/pavlok/result",
         "failureRedirect": "/error"
     }));
 
-//Exports
 
+
+
+
+//Exports
 var exports = module.exports = {};
 
 /**
-  Login into Pavlok's API. Note that this relies on Node being able to listen
-  on port 3000 (or a port passed in options), and Node being able to write to 
-  ./pavlok-token.json.
-  
-  @param {String} Client ID
-  @param {String} Client secret
-  @param {Object} options - Custom options for setup. Optional. Accepts
-                            a port ("port", number), callback URL ("callbackUrl",
-                            string), verbose debugging ("verbose", boolean) option. 
-  @param {Function} callback - Callback with two arrguments. First argument 
-                               is true or false depending on success/failure,
-                               and the second is the auth token on success.
+  Setup the API for later use (via login, vibrate, etc.). Must be called before
+  login to at least setup the client ID and client secret. 
+ 
+  @param {String} Client ID - The OAuth2 client ID.
+  @param {String} Client secret - The OAuth2 client secret.
+  @param {Object} options - Custom setup options. Accepts a port ("port", number"),
+			    callback URL ("callbackUrl", string), and a verbose 
+			    debugging option ("verbose", boolean).
  **/
-exports.login = function(cId, cSecret, options, callback){
-    var callbackUrl = null;
-    var port = PORT;
-    
-    //Setup from options
-    if(options !== undefined && typeof options == "object"){
-        if(options.save != undefined && typeof options.save == "boolean"){
+exports.init = function(cId, cSecret, options){
+	if(cId !== undefined && cSecret != undefined && typeof cId == "string" 
+		&& typeof cSecret == "string"){
+		CLIENT_ID = cId;
+		CLIENT_SECRET = cSecret;		
+
+		if(options == undefined) options = {};
+
+		if(options.save != undefined && typeof options.save == "boolean"){
 			save = options.save;
 		} else {
 			save = true;
@@ -151,20 +174,42 @@ exports.login = function(cId, cSecret, options, callback){
 			BASE_URL = options.apiUrl;
 
 		if(options.port !== undefined && typeof options.port == "number") 
-            port = options.port;        
+            PORT = options.port;        
         
 		if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string")
-            callbackUrl = options.callbackUrl;
+            CALLBACK_URL = options.callbackUrl;
         
 		if(options.verbose !== undefined && typeof options.verbose == "boolean")
-            verbose = options.verbose; //Sets a global; persists after login
-    } else {
-        //Options has been left out; options is callback
-        callback = options;
+            VERBOSE = options.verbose; //Sets a global; persists after login
+	} else {
+		console.log("Invalid init params!");	
+	} 
+}
+
+/**
+  Login into Pavlok's API. Note that this relies on Node being able to listen
+  on port 3000 (or a port passed in init), and Node being able to write to 
+  ./pavlok-token.json (assuming save isn't false).
+  
+  @param {Function} callback - Callback with two arrguments. First argument 
+                               is true or false depending on success/failure,
+                               and the second is the auth token on success.
+ **/
+exports.login = function(cId, cSecret, options, callback){
+	if(typeof cId == "function"){ //New usage; we just pass in a callback
+		callback = cId;
+	} else {
+    	//Setup from options first
+    	if(typeof options == "function"){
+			exports.init(cId, cSecret);
+			callback = options;
+		} else {
+    		exports.init(cId, cSecret, options);
+		}
     }
 
-    if(callbackUrl == null){
-        callbackUrl = "http://localhost:" + port + "/auth/pavlok/result";
+    if(CALLBACK_URL == null){
+		CALLBACK_URL = "http://localhost:" + PORT + "/auth/pavlok/result";
     }
 
     if(code != null){
@@ -175,16 +220,16 @@ exports.login = function(cId, cSecret, options, callback){
         if(save) log("Unable to load code from disk; starting server...");
     }
         
-    server = app.listen(port, function(){
-        open("http://localhost:" + port + "/auth/pavlok");
+    server = app.listen(PORT, function(){
+        open("http://localhost:" + PORT + "/auth/pavlok");
     });
        
     passport.use(new OAuth2Strategy({
         authorizationURL: BASE_URL + "/oauth/authorize",
         tokenURL: BASE_URL + "/oauth/token",
-        clientID: cId,
-        clientSecret: cSecret,
-        callbackURL: callbackUrl
+        clientID: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        callbackURL: CALLBACK_URL
     },
     function(token, tokenRefresh, profile, done){
         if(token != null){
@@ -214,8 +259,8 @@ exports.logout = function(){
 }    
 
 function genericCall(route, intensity, callback){
-    var address = BASE_URL + "/api/v1/stimuli/"
-            + route + "/" + intensity;
+    var address = BASE_URL + "/api/v1/stimuli/" + route + "/" + intensity;
+	var hasCallback = (callback !== undefined); 
     var queryParams = {
             access_token: code,
             time: new Date()
@@ -223,20 +268,20 @@ function genericCall(route, intensity, callback){
 
     log("Trying to " + route + " with " + intensity + "...");
     if(signingIn){
-        callback(false, "Please wait until login completes.");
+        if(hasCallback) callback(false, "Please wait until login completes.");
         return;
     }
 
     if(code == null){
-        callback(false, "Please login before using the API.");
+        if(hasCallback) callback(false, "Please login before using the API.");
         return;
     }
 
     if(route == "beep" && (intensity < 1 || intensity > 4)){
-        callback(false, "Intensity must be between 1-4!");
+        if(hasCallback) callback(false, "Intensity must be between 1-4!");
         return;
     } else if (intensity < 1 || intensity > 255){
-        callback(false, "Intensity must be between 1-255!");
+        if(hasCallback) callback(false, "Intensity must be between 1-255!");
     }
 
     request({
@@ -245,16 +290,16 @@ function genericCall(route, intensity, callback){
         method: 'POST',
     }, function(error, response, body){
         if(error){
-            callback(false, error);
+            if(hasCallback) callback(false, error);
         } else {
             if (response.statusCode == 401) {
                 clearTokenFile();
-                callback(false, "Your auth token has expired!");
+				code = null;
+                if(hasCallback) callback(false, "Your auth token has expired!");
             } else if (response.statusCode == 200) {
-                callback(true, route + " sent.");
+                if(hasCallback) callback(true, route + " sent.");
             } else {
-                callback(false, route + " returned unknown code: " + 
-                    response.statusCode + ".");
+                if(hasCallback) callback(false, route + " returned unknown code: " + response.statusCode + ".");
             }
         }
     });
