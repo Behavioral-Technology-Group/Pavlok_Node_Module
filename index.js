@@ -9,10 +9,8 @@ var express = require('express');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-//Passport for OAuth support
-var passport = require('passport');
-var oauth = require('passport-oauth');
-var OAuth2Strategy = oauth.OAuth2Strategy;
+//For keep up a session
+var cookieSession = require('cookie-session');
 
 //Request to query API
 var request = require('request');
@@ -26,6 +24,7 @@ var SAVE = true;
 var CLIENT_ID = null;
 var CLIENT_SECRET = null;
 var CALLBACK_URL = null;
+var CALLBACK_URL_STUB = null;
 var ALERT_TEXT = "Sent from Node Module.";
 
 //Shared fields
@@ -121,17 +120,24 @@ exports.init = function(cId, cSecret, options){
 	if(options.message !== undefined && typeof options.message == "string")
 		ALERT_TEXT = options.message;
 
-	if(options.app != undefined && typeof options.app == "object"){
+	if(options.app != undefined){
 		log("Initing server...");
 		
 		isServer = true;
-		app = app;
+		app = options.app;
 
 		//Setup matching options
 		if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string"){
 			CALLBACK_URL = options.callbackUrl;
 		} else {
 			logErr("callbackUrl must not be null for server apps; there is no default value!");
+			return;
+		}
+		
+		if(options.callbackUrlPath !== undefined && typeof options.callbackUrlPath == "string"){
+			CALLBACK_URL_STUB = options.callbackUrlPath;
+		} else {
+			logErr("callbackUrlPath must not be null for server apps; there is no default value!");
 			return;
 		}
 		
@@ -145,13 +151,61 @@ exports.init = function(cId, cSecret, options){
 			typeof options.sessionSecret == "string"){
 			sessionSecret = options.sessionSecret;
 		} else {
-			console.log("WARNING - Pavlok is configured as a server, but " +
+			logErr("Pavlok is configured as a server, but " +
 				"it is internally handling client token saving with a" +
 				" value that's insecure!");
 		}
 		
-		//Setup server to authenticate from the callback URL
+		//Setup server to handle sessions, if needed
+		if(options.handleSessions == undefined || typeof options.handleSessions != "boolean" 
+			|| options.handleSessions){
+			log("Internally handling sessions...");
+			app.use(cookieSession({
+				name: 'session',
+				keys: [ sessionSecret ]
+			}));
+		} else {
+			log("You're handling sessions on your own! Make sure you know what you're doing.");
+		}
 		
+		//Setup callback URL
+		app.get(CALLBACK_URL_STUB, function(req, res){ //See if there's a code in here
+			if(req.query.code == null || req.query.code.length == 0){
+				res.redirect(req.session.error_path);
+				return;
+			}
+			
+			//Perform a request to /oauth/token to get the authentication token
+			var address = BASE_URL + "/oauth/token";
+			var queryParams = {
+				code: req.query.code,
+				client_id: CLIENT_ID,
+				client_secret: CLIENT_SECRET,
+				grant_type: "authorization_code",
+				redirect_uri: CALLBACK_URL
+			};
+
+			request({
+				url: address,
+				qs: queryParams,
+				method: 'POST'
+				}, function(error, response, body){
+					if(error){
+						try{ 
+							logErr(JSON.stringify(error)); 
+						} catch (e) {}
+						res.redirect(req.session.error_path);
+					} else {
+						var codeResponse = JSON.parse(body);
+						var token = codeResponse.access_token;
+
+						req.session.pavlok_token = token;
+						
+						//Redirect to done
+						res.redirect(req.session.success_path);
+					}			
+				});
+		});
 	} else {
 		log("Initing client...");
 		
@@ -287,12 +341,27 @@ exports.login = function(callback){
     isSigningIn = true;
 };
 
+exports.auth = function(request, result, options){
+	request.session.success_path = options.success;
+	request.session.error_path = options.failure;
+	result.redirect(BASE_URL + "/oauth/authorize?client_id=" + CLIENT_ID + "&redirect_uri=" + CALLBACK_URL + "&response_type=code"); //Redirect to Pavlok server to authorize
+};
+
 /**
   * Logout from this device. If you saved the auth token elsewhere, it
   * will still work.
   */  
-exports.logout = function(){
-    clearTokenFile();
+exports.logout = function(request){
+	if(!isServer){
+		clearTokenFile();
+	} else {
+		//Remove cookie from session
+		if(request != undefined || typeof request != "object"){
+			logErr("No request object provided to logout in!");
+		} else {
+			request.session.destroy();
+		}
+	}
 };   
 
 /**
@@ -404,10 +473,11 @@ exports.vibrate = function(value, message, callback){
   * @param callback - A callback for success, with two arguments:
                       a success boolean, and a message.
   */
-exports.zap = function(value, message, callback){
+exports.zap = function(options){
     genericCall("shock", {
-		intensity: value, 
-		message: message, 
-		callback: callback
+		intensity: options.value, 
+		message: options.message, 
+		callback: options.callback,
+		request: options.request
 	});
 }
