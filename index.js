@@ -38,9 +38,10 @@ var successUrl = "/success";
 var failureUrl = "/failure";
 
 //Fields for usage as client
+var isSigningIn = false; //Are we signing in?
 var tokenFile = null; //A representation of the token file on disk
-var signingIn = null; //Are we signing in?
 var code = null; //The fetched auth code
+var loginCallback = null;
 
 function log(msg){
     if(VERBOSE) console.log("[Pavlok API] " + msg);
@@ -66,7 +67,6 @@ function saveTokenFile(token){
     try {
         tokenFile.token = token;    
         code = token;
-        signingIn = false;
         if(SAVE) fs.writeFileSync(TOKEN_FILENAME, JSON.stringify(tokenFile, null, 2));
     } catch(e) {
         throw "Can't access disk to save Pavlok auth token!";
@@ -100,146 +100,153 @@ var exports = module.exports = {};
 				the token to be stored in ("tokenFile", string).
  **/
 exports.init = function(cId, cSecret, options){
-	if(cId !== undefined && cSecret != undefined && typeof cId == "string" 
-		&& typeof cSecret == "string"){
-		CLIENT_ID = cId;
-		CLIENT_SECRET = cSecret;		
+	if(cId == undefined || cSecret == undefined || typeof cId != "string" 
+		|| typeof cSecret != "string"){
+		logErr("No client ID or client secret provided!");
+		return;
+	}
+	
+	CLIENT_ID = cId;
+	CLIENT_SECRET = cSecret;		
 
-		if(options == undefined || typeof options != "object") options = {};
+	if(options == undefined || typeof options != "object") options = {};
 
-		//Fields shared between both modes
-		if(options.apiUrl !== undefined && 	typeof options.apiUrl == "string")
-			BASE_URL = options.apiUrl;
-        
-		if(options.verbose !== undefined && typeof options.verbose == "boolean")
-            VERBOSE = options.verbose; 
+	//Fields shared between both modes
+	if(options.apiUrl !== undefined && 	typeof options.apiUrl == "string")
+		BASE_URL = options.apiUrl;
+	
+	if(options.verbose !== undefined && typeof options.verbose == "boolean")
+		VERBOSE = options.verbose; 
 
-		if(options.message !== undefined && typeof options.message == "string")
-			ALERT_TEXT = options.message;
+	if(options.message !== undefined && typeof options.message == "string")
+		ALERT_TEXT = options.message;
 
-		if(options.app != undefined && typeof options.app == "object"){
-			isServer = true;
-			app = app;
+	if(options.app != undefined && typeof options.app == "object"){
+		log("Initing server...");
+		
+		isServer = true;
+		app = app;
 
-			//Setup matching options
-			if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string"){
-				CALLBACK_URL = options.callbackUrl;
-			} else {
-				logErr("callbackUrl must not be null for server apps; there is no default value!");
+		//Setup matching options
+		if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string"){
+			CALLBACK_URL = options.callbackUrl;
+		} else {
+			logErr("callbackUrl must not be null for server apps; there is no default value!");
+			return;
+		}
+		
+		var configureSession = false;
+		if(options.configureSession != undefined &&
+			typeof options.configureSession == "boolean")
+			configureSession = options.configureSession;
+
+		var sessionSecret = "whywouldyouusethis";
+		if(options.sessionSecret != undefined &&
+			typeof options.sessionSecret == "string"){
+			sessionSecret = options.sessionSecret;
+		} else {
+			console.log("WARNING - Pavlok is configured as a server, but " +
+				"it is internally handling client token saving with a" +
+				" value that's insecure!");
+		}
+		
+		//Setup server to authenticate from the callback URL
+		
+	} else {
+		log("Initing client...");
+		
+		isServer = false;
+
+		//Load fields
+		if(options.save != undefined && typeof options.save == "boolean")
+			SAVE = options.save;
+
+		if(options.port !== undefined && typeof options.port == "number") 
+			PORT = options.port;
+			
+		CALLBACK_URL = "http://localhost:" + PORT + "/auth/pavlok/result";
+
+		if(options.tokenFile !== undefined && typeof options.tokenFile == "string")
+			TOKEN_FILENAME = options.tokenFile;
+
+		//Load token file from the disk
+		try {
+			 tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
+		} catch (e) {
+			try {
+				createTokenFile();
+				tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
+			} catch (ignored) {} //Will happen on systems without file I/O access
+		}
+
+		if(tokenFile.token != null){
+			code = tokenFile.token;
+		}
+
+		//Setup app object
+		app = express();
+		app.use(express.static(__dirname + '/public'));
+		app.use(cookieParser());
+		app.use(bodyParser.json());
+		
+		app.get("/auth/pavlok", function(req, res){
+			res.redirect(BASE_URL + "/oauth/authorize?client_id=" + CLIENT_ID + "&redirect_uri=" + CALLBACK_URL + "&response_type=code"); //Redirect to Pavlok server to authorize
+		});
+		app.get("/auth/pavlok/result", function(req, res){ //See if there's a code in here
+			if(req.query.code == null || req.query.code.length == 0){
+				res.send("You've rejected the request to authenticate. Please try again.");
+				server.close();
 				return;
 			}
 			
-			var configureSession = false;
-			if(options.configureSession != undefined &&
-				typeof options.configureSession == "boolean")
-				configureSession = options.configureSession;
+			//Perform a request to /oauth/token to get the authentication token
+			var address = BASE_URL + "/oauth/token";
+			var queryParams = {
+				code: req.query.code,
+				client_id: CLIENT_ID,
+				client_secret: CLIENT_SECRET,
+				grant_type: "authorization_code",
+				redirect_uri: CALLBACK_URL
+			};
 
-			var sessionSecret = "whywouldyouusethis";
-			if(options.sessionSecret != undefined &&
-				typeof options.sessionSecret == "string"){
-				sessionSecret = options.sessionSecret;
-			} else {
-				console.log("WARNING - Pavlok is configured as a server, but " +
-					"it is internally handling client token saving with a" +
-					" value that's insecure!");
-			}
-			
-			//Setup server to authenticate from the callback URL
-			
-		} else {
-			isServer = false;
-			//Setup matching fields
+			request({
+				url: address,
+				qs: queryParams,
+				method: 'POST'
+				}, function(error, response, body){
+					if(error){
+						try{ 
+							logErr(JSON.stringify(error)); 
+						} catch (e) {}
+						res.redirect("/error");
+						server.close();
+						loginCallback(false, null);
+					} else {
+						var codeResponse = JSON.parse(body);
+						var token = codeResponse.access_token;
 
-			//Load fields
-			if(options.save != undefined && typeof options.save == "boolean")
-				SAVE = options.save;
-
-			if(options.port !== undefined && typeof options.port == "number") 
-			    PORT = options.port;
-			    
-			CALLBACK_URL = "http://localhost:" + PORT + "/auth/pavlok/result";
-
-			if(options.tokenFile !== undefined && typeof options.tokenFile == "string")
-				TOKEN_FILE = options.tokenFile;
-
-			//Load token file from the disk
-			try {
-				 tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
-			} catch (e) {
-			    try {
-					createTokenFile();
-					tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
-				} catch (ignored) {} //Will happen on systems without file I/O access
-			}
-
-			if(tokenFile.token != null){
-			    code = tokenFile.token;
-			}
-
-			//Setup app object
-			app = express();
-			app.use(express.static(__dirname + '/public'));
-			app.use(cookieParser());
-			app.use(bodyParser.json());
-			
-			app.get("/auth/pavlok", function(request, result){
-				result.redirect(BASE_URL + "/oauth/authorize?client_id" + CLIENT_ID + "&redirect_uri=" + CALLBACK_URL + "&response_type=code"); //Redirect to Pavlok server to authorize
-			});
-			app.get("/auth/pavlok/result", function(request, result){ //See if there's a code in here
-				if(request.query.code == null || request.query.code.length == 0){
-					result.send("You've rejected the request to authenticate. Please try again.");
-					return;
-				}
-				
-				//Perform a request to /oauth/token to get the authentication token
-				var address = BASE_URL + "/oauth/token";
-				var queryParams = {
-					code: request.query.code,
-					client_id: CLIENT_ID,
-					client_secret: CLIENT_SECRET,
-					grant_type: "authorization_code",
-					redirect_uri: CALLBACK_URL
-				};
-
-				request({
-					url: address,
-					qs: queryParams,
-					method: 'POST'
-					}, function(error, response, body){
-						if(error){
-							try{ 
-								logErr(JSON.stringify(error)); 
-							} catch (e) {}
-							result.redirect("/error");
-						} else {
-							var codeResponse = JSON.parse(body);
-							var token = codeResponse.access_token;
-
-							code = token;
-							
-							//Redirect to done
-							res.redirect("/done");
-						}			
-					});
-			});
-			app.get("/", function(request, result){
-				result.redirect("index.html");
-			});
-			app.get("/done", function(request, result){
-				result.redirect("done.html");
-			});
-			app.get("/error", function(request, result){
-				result.redirect("error.html");
-			});
-			server = app.listen(PORT, function(){
-				log("Server listening now...")
-			});
-		}
-		
-		isInited = true;
-	} else {
-		console.log("Invalid init params!");	
-	} 
+						code = token;
+						saveTokenFile(code);
+						
+						//Redirect to done
+						res.redirect("/done");
+						server.close();
+						loginCallback(true, code);
+					}			
+				});
+		});
+		app.get("/", function(request, result){
+			result.redirect("index.html");
+		});
+		app.get("/done", function(request, result){
+			result.redirect("done.html");
+		});
+		app.get("/error", function(request, result){
+			result.redirect("error.html");
+		});
+	}
+	
+	isInited = true;
 };
 
 /**
@@ -257,64 +264,28 @@ exports.login = function(callback){
 		logErr("You must call pavlok.init(...) first.");
 		return;
 	}
-	if(!isServer){
+	if(isServer){
 		logErr("Login is invalid when running as a server!");
 		return;
 	}
-	if(siginingIn){
+	if(isSigningIn){
 		logErr("You can't login while trying to login.");
 		return;
 	}
-	
+		
 	if(code != null){
 		log("Code loaded from disk: " + code);
 		callback(true, code);
 		return;
 	}
 	
-	open("http://localhost:" + PORT + "/auth/pavlok");
+	server = app.listen(PORT, function(){
+		log("Server listening now...")
+		open("http://localhost:" + PORT + "/auth/pavlok");
+	});
+	loginCallback = callback;
+    isSigningIn = true;
 };
-/*
-
-    if(CALLBACK_URL == null){
-		CALLBACK_URL = "http://localhost:" + PORT + "/auth/pavlok/result";
-    }
-
-    if(code != null){
-        log("Code loaded: " + code);
-        callback(true, code);
-        return;
-    } else {
-        if(SAVE) log("Unable to load code from disk; starting server...");
-    }
-        
-    
-       
-    passport.use(new OAuth2Strategy({
-        authorizationURL: BASE_URL + "/oauth/authorize",
-        tokenURL: BASE_URL + "/oauth/token",
-        clientID: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        callbackURL: CALLBACK_URL
-    },
-    function(token, tokenRefresh, profile, done){
-        if(token != null){
-            if(SAVE) log("Saving " + token + " token to disk...");
-            saveTokenFile(token);
-            signingIn = false;
-            callback(true, token);
-        } else {
-            log("Token not found!");
-            saveTokenFile(null);
-            signingIn = false;
-            callback(false, null);
-        }
-
-        return done(null, {}); //No user object checking for Pavlok's API
-    }));
-*/
-    signingIn = true;
-}
 
 /**
   * Logout from this device. If you saved the auth token elsewhere, it
@@ -322,53 +293,17 @@ exports.login = function(callback){
   */  
 exports.logout = function(){
     clearTokenFile();
-}    
+};   
 
+/**
+ * Perform a generic stimuli call against the API.
+ */
 function genericCall(route, options){
-	//Rejigger what's in opts if stuff has been omitted
-	//Messy; .zap/.beep/etc. should've originally had options bundles, but
-	//instead had args, leading to this mess...
-	var intensityType = typeof options.intensity;
-	var messageType = typeof options.message;
-	var callbackType = typeof options.callback;
-
-	if(intensityType != "undefined"){ //>= 1 opt
-		if(messageType != "undefined"){ //>= 2 opts
-			if(callbackType != "undefined"){ //3 opts
-				//We're actually good if we have 3 opts -- no back. comp. issue
-			} else { //Figure out what intensity and message _really_ are
-				if(intensityType != "number"){ //A message, then
-					options.callback = options.message;
-					options.message = options.intensity;
-					options.intensity = undefined;
-				} else { //Only other bad combo is callback in message slot
-					if(messageType == "function"){
-						options.callback = options.message;
-						options.message = undefined;
-					}
-				}
-			}
-		} else { //Just 1 opt -- figure out what it is and null all else
-			var temp = options.intensity;
-			options.intensity = undefined;
-			options.callback = undefined;
-			options.message = undefined;
-
-			if(intensityType == "number"){
-				options.intensity = temp;
-			} else if (intensityType == "string"){
-				options.message = temp;
-			} else {
-				options.callback = temp;
-			}
-		}
-	}
-
     var message = ALERT_TEXT;
     if(options.message !== undefined && typeof options.message == "string"){
 		message = options.message;		
     }
-	var intensity = (route == "beep" ? 2 : 50);
+	var intensity = 127;
 	if(options.intensity !== undefined && typeof options.intensity == "number"){
 		intensity = options.intensity;
 	}
@@ -376,10 +311,24 @@ function genericCall(route, options){
 	if(options.callback !== undefined && typeof options.callback == "function"){
 		callback = options.callback;
 	}
+	
+	var token = null;
+	if(isServer){
+		if(options.request == undefined || typeof options.request != "object"){
+			callback(false, "No request object provided!");
+			return;
+		} else {
+			if(options.request.session.pavlok_token != undefined){
+				token = options.request.session.pavlok_token;
+			} 
+		}
+	} else {
+		token = code;
+	}
 
     var address = BASE_URL + "/api/v1/stimuli/" + route + "/" + intensity;
 	var queryParams = {
-        access_token: code,
+        access_token: token,
 	    reason: message,
         time: new Date()
     };
@@ -387,20 +336,11 @@ function genericCall(route, options){
     log("Trying to " + route + " with " + intensity + "...");
     
 	//Verify parameter values
-	if(signingIn){
-        callback(false, "Please wait until login completes.");
-        return;
-    }
-
-    if(code == null){
+    if(token == null){
         callback(false, "Please login before using the API.");
         return;
     }
-
-    if(route == "beep" && (intensity < 1 || intensity > 4)){
-        callback(false, "Intensity must be between 1-4!");
-        return;
-    } else if (intensity < 1 || intensity > 255){
+    if(intensity < 1 || intensity > 255){
         callback(false, "Intensity must be between 1-255!");
 		return;
     }
