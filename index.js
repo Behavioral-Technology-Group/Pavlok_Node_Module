@@ -87,16 +87,44 @@ var exports = module.exports = {};
 
 /**
   Setup the API for later use (via login, vibrate, etc.). Must be called before
-  login to at least setup the client ID and client secret. 
+  login or auth to at least setup the client ID and client secret. 
  
   @param {String} Client ID - The OAuth2 client ID.
   @param {String} Client secret - The OAuth2 client secret.
-  @param {Object} options - Custom setup options. Accepts a port ("port",
-				 number), callback URL ("callbackUrl", string), a verbose 
-			    debugging option ("verbose", boolean), an option to save
-				the token ("save", boolean), a default value for
-				alert text ("message", string), and a custom filename for 
-				the token to be stored in ("tokenFile", string).
+  @param {Object} options - Custom setup options. There are several possible
+		options, depending on the type of setup.
+	   
+		Shared between client/server:
+		- apiUrl (string, optional) - The Pavlok API to query (default is fine).
+		- verbose (boolean, optional) - Whether to enable verbose logging.
+		- message (string, optional) - The default message to send with stimuli.
+		- app (object, optional) - The Express app to setup to be a server. If
+			present, the module will setup in server mode; if not, the module will
+			setup in local mode.
+
+		In server mode:
+		- callbackUrl (string) - The callback URL associated with your CID/CSecret.
+		- callbackUrlStub (string) - The path of your callback URL relative to 
+			your root (e.g. "/pavlok/postauth").
+		- successPath (string) - The relative path to redirect to after a 
+			successful authorization.
+		- failurePath (string) - The relative path to redirect to after a 
+			failed authorization.
+		- handleSessions (boolean, optional) - Whether the module should setup
+			a request.session(...) for you. Defaults to true. If you do this 
+			yourself, you must make sure request.session exists for this module
+			to use.
+		- sessionSecret (string, optional) - The secret to secure a user's 
+			session with.
+
+		In client mode (note that in client mode, the callback URL you must
+		register with your client ID/client secret is
+	   	"http://localhost:PORT_YOU_CHOOSE/auth/pavlok/result".
+		- save (boolean, optional) - Whether to save access tokens between sessions.
+		- tokenFile (string, optional) - The name of the token file.
+		- port (number, optional) - The port to run the client server for fetching
+			auth tokens on. Defaults to 3000; running under 1024 might need root
+			priveleges on some systems. 
  **/
 exports.init = function(cId, cSecret, options){
 	if(cId == undefined || cSecret == undefined || typeof cId != "string" 
@@ -141,11 +169,6 @@ exports.init = function(cId, cSecret, options){
 			return;
 		}
 		
-		var configureSession = false;
-		if(options.configureSession != undefined &&
-			typeof options.configureSession == "boolean")
-			configureSession = options.configureSession;
-
 		var sessionSecret = "whywouldyouusethis";
 		if(options.sessionSecret != undefined &&
 			typeof options.sessionSecret == "string"){
@@ -377,7 +400,7 @@ exports.auth = function(request, result, options){
 			 "/pavlok/failure" success/error redirect paths.
  */
 exports.isLoggedIn = function(request, result, next){
-	if(request.session.pavlok_token !== undefined && request.session.pavloK_token != null){
+	if(request.session.pavlok_token !== undefined && request.session.pavlok_token != null){
 		if(next !== undefined){
 			next();
 		} else {
