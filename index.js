@@ -4,12 +4,12 @@ var fs = require('fs');
 //Open browser
 var open = require('open');
 
-//Run server to do OAuth
+//Run a server to do OAuth
 var express = require('express');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
-//For keep up a session
+//For keeping up a session
 var cookieSession = require('cookie-session');
 
 //Request to query API
@@ -168,10 +168,22 @@ exports.init = function(cId, cSecret, options){
 			log("You're handling sessions on your own! Make sure you know what you're doing.");
 		}
 		
+		if(options.successPath !== undefined && typeof options.successPath == "string"){
+			successUrl = options.successPath;
+		} else {
+			successUrl = "/";
+		}
+
+		if(options.errorPath !== undefined && typeof options.errorPath == "string"){
+			errorUrl = options.errorPath;
+		} else {
+			errorUrl = "/error";
+		}
+		
 		//Setup callback URL
 		app.get(CALLBACK_URL_STUB, function(req, res){ //See if there's a code in here
 			if(req.query.code == null || req.query.code.length == 0){
-				res.redirect(req.session.error_path);
+				res.redirect(errorUrl);
 				return;
 			}
 			
@@ -194,7 +206,7 @@ exports.init = function(cId, cSecret, options){
 						try{ 
 							logErr(JSON.stringify(error)); 
 						} catch (e) {}
-						res.redirect(req.session.error_path);
+						res.redirect(errorUrl);
 					} else {
 						var codeResponse = JSON.parse(body);
 						var token = codeResponse.access_token;
@@ -202,7 +214,7 @@ exports.init = function(cId, cSecret, options){
 						req.session.pavlok_token = token;
 						
 						//Redirect to done
-						res.redirect(req.session.success_path);
+						res.redirect(successUrl);
 					}			
 				});
 		});
@@ -223,7 +235,7 @@ exports.init = function(cId, cSecret, options){
 		if(options.tokenFile !== undefined && typeof options.tokenFile == "string")
 			TOKEN_FILENAME = options.tokenFile;
 
-		//Load token file from the disk
+		//Load token file from the disk (regardless of SAVE, we still try to read)
 		try {
 			 tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, 'utf8'));
 		} catch (e) {
@@ -341,32 +353,62 @@ exports.login = function(callback){
     isSigningIn = true;
 };
 
+/*
+ * Sign the user in to Pavlok from server mode.
+ * @param request - The Express request.
+ * @param result - The Express result.
+ */
 exports.auth = function(request, result, options){
-	request.session.success_path = options.success;
-	request.session.error_path = options.failure;
+	if(!isServer){
+		logErr("Auth called in local mode!");
+		return;
+	}
 	result.redirect(BASE_URL + "/oauth/authorize?client_id=" + CLIENT_ID + "&redirect_uri=" + CALLBACK_URL + "&response_type=code"); //Redirect to Pavlok server to authorize
 };
 
+/*
+ * A "guard" function that tests whether a user is logged in. 
+ * @param request - The Express request. 
+ * @param result - The Express result. Only needed if being used as middleware.
+ * @param next - The next piece of middleware. Again, only needed if being used
+				 as middleware.
+ * @return - Returns whether user is logged in. If used as middleware, will
+			 automatically call auth with "/pavlok/success" and
+			 "/pavlok/failure" success/error redirect paths.
+ */
+exports.isLoggedIn = function(request, result, next){
+	if(request.session.pavlok_token !== undefined && request.session.pavloK_token != null){
+		if(next !== undefined){
+			next();
+		} else {
+			return true;
+		}
+	} else {
+		if(next !== undefined){
+			next();
+		} else {
+			return false;
+		}
+	}
+}
+
 /**
-  * Logout from this device. If you saved the auth token elsewhere, it
-  * will still work.
+  * Logout from this device. If you're in local mode, this takes no arguments,
+  * but in server mode, it takes one parameter, the user's request.
   */  
 exports.logout = function(request){
 	if(!isServer){
 		clearTokenFile();
 	} else {
 		//Remove cookie from session
-		if(request != undefined || typeof request != "object"){
+		if(request == undefined || typeof request != "object"){
 			logErr("No request object provided to logout in!");
 		} else {
-			request.session.destroy();
+			request.session.pavlok_token = null;
 		}
 	}
 };   
 
-/**
- * Perform a generic stimuli call against the API.
- */
 function genericCall(route, options){
     var message = ALERT_TEXT;
     if(options.message !== undefined && typeof options.message == "string"){
@@ -379,6 +421,23 @@ function genericCall(route, options){
 	var callback = function(res, reason){};
 	if(options.callback !== undefined && typeof options.callback == "function"){
 		callback = options.callback;
+	}
+	var count = 1;
+	if(options.count !== undefined && typeof options.callback == "number"){
+		count = options.count;
+	}
+	var pattern = "beep-vibrate";
+	if(options.pattern !== undefined && typeof options.pattern == "object" && options.pattern.length !== undefined && options.pattern.length > 0){
+		pattern = "";
+		for(var i = 0; i < options.pattern.length; i++){
+			if(options.pattern[i] == "zap") options.pattern[i] = "shock";
+			if(options.pattern[i] != "shock" && options.pattern[i] != "vibrate" && options.pattern[i] != "beep"){
+				callback(false, "Invalid pattern stimuli type of: " + options.pattern[i]);
+				return;
+			}
+			pattern += options.pattern[i];
+			if(i !== options.pattern.length-1) pattern += "-";
+		}
 	}
 	
 	var token = null;
@@ -396,6 +455,9 @@ function genericCall(route, options){
 	}
 
     var address = BASE_URL + "/api/v1/stimuli/" + route + "/" + intensity;
+	if(route == "pattern"){
+		address = BASE_URL + "/api/v1/stimuli/" + route + "/" + pattern + "/" + intensity + "/" + count;
+	}
 	var queryParams = {
         access_token: token,
 	    reason: message,
@@ -413,6 +475,9 @@ function genericCall(route, options){
         callback(false, "Intensity must be between 1-255!");
 		return;
     }
+	if(count < 1){
+		callback(false, "Count must be greater than or equal to 1!");
+	}
 
     request({
         url: address,
@@ -423,7 +488,7 @@ function genericCall(route, options){
             callback(false, error);
         } else {
             if (response.statusCode == 401) {
-                clearTokenFile();
+                if(!isServer && SAVE) clearTokenFile();
 				code = null;
                 callback(false, "Your auth token has expired!");
             } else if (response.statusCode == 200) {
@@ -434,44 +499,84 @@ function genericCall(route, options){
             }
         }
     });
-}
+};
+
+/**
+  * Send a pattern to a Pavlok.
+  * @param options - Ways to adjust the pattern, all optional except
+	for request if you're running as a server. intensity is a number
+	from 1-255 that controls the stimuli's intensity, message is a 
+	string that controls the message sent with the stimuli, callback
+	is the callback after the stimuli's completion (i.e. a function
+	that takes two arguments, a boolean indicating success/failure, and
+	a string with the completion message), count is the number of times
+	to repeat the pattern, pattern is the pattern as an array of strings
+	(e.g. [ "beep", "zap", "vibrate"]), and request is the Express
+	request if you're running as a server.
+  */
+
+exports.pattern = function(options){
+    genericCall("pattern", {
+		intensity: options.value, 
+		message: options.message, 
+		callback: options.callback,
+		request: options.request,
+		count: options.count,
+		pattern: options.pattern
+	});
+};	
 
 /**
   * Beep a Pavlok.
-  * @param value - The tone of beep, between 1-4.
-  * @param message - The message to include with the stimuli.
-  * @param callback - A callback for success, with two arguments:
-                      a success boolean, and a message.
+  * @param options - Ways to adjust the beep, all optional except
+	for request if you're running as a server. intensity is a number
+	from 1-255 that controls the stimuli's intensity, message is a 
+	string that controls the message sent with the stimuli, callback
+	is the callback after the stimuli's completion (i.e. a function
+	that takes two arguments, a boolean indicating success/failure, and
+	a string with the completion message), and request, the Express
+	request if you're running as a server.
   */
-exports.beep = function(value, message, callback){
+exports.beep = function(options){
     genericCall("beep", {
-		intensity: value, 
-		message: message, 
-		callback: callback
+		intensity: options.value, 
+		message: options.message, 
+		callback: options.callback,
+		request: options.request
 	});
 }
 
 /**
   * Vibrate a Pavlok.
   * @param value - The intensity of vibration between 1-255.
-  * @param message - The message to include with the stimuli.
-  * @param callback - A callback for success, with two arguments:
-                      a success boolean, and a message.
-  */
+  * @param options - Ways to adjust the vibration, all optional except
+	for request if you're running as a server. intensity is a number
+	from 1-255 that controls the stimuli's intensity, message is a 
+	string that controls the message sent with the stimuli, callback
+	is the callback after the stimuli's completion (i.e. a function
+	that takes two arguments, a boolean indicating success/failure, and
+	a string with the completion message), and request, the Express
+	request if you're running as a server.
+ */
 exports.vibrate = function(value, message, callback){
     genericCall("vibration", {
-		intensity: value,
-		message: message,
-		callback: callback
+		intensity: options.value, 
+		message: options.message, 
+		callback: options.callback,
+		request: options.request
 	});
 }
 
 /**
   * Zap with a Pavlok.
-  * @param value - The intensity of zap, between 1-255.
-  * @param message - The message to include with the stimuli.
-  * @param callback - A callback for success, with two arguments:
-                      a success boolean, and a message.
+  * @param options - Ways to adjust the zap, all optional except
+	for request if you're running as a server. intensity is a number
+	from 1-255 that controls the stimuli's intensity, message is a 
+	string that controls the message sent with the stimuli, callback
+	is the callback after the stimuli's completion (i.e. a function
+	that takes two arguments, a boolean indicating success/failure, and
+	a string with the completion message), and request, the Express
+	request if you're running as a server.
   */
 exports.zap = function(options){
     genericCall("shock", {
