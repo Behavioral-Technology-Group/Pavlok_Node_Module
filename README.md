@@ -40,40 +40,9 @@ pavlok.init("clientId",
 pavlok.login(function(result, code){
 	if(result){
 		console.log("Code is " + code);
-		pavlok.zap({
-			"message": "Hello!",
-			"callback": 
-				function(result, message){
-					console.log(result + " " + message);
-				}
-		});
 	}
 });
 ```
-
-### Sending Stimuli
-Each stimuli function is single-shot, and, if they fail on the device they're sent to, fail silently. However, messages not delivered to the API will generate an error.
-
-Each stimuli is passed an options object, which may be empty. The object can contain `intensity`, a number from 1-255, `callback`, a function with format:
-
-```
-function callback(success, message){
-    if(success){
-        //It worked
-    } else {
-        //It didn't; useful information might be in the message.
-    }
-}
-```
-and `message`, a message to include with the stimuli.
-
-Zapping is done with `pavlok.zap(opts);`.
-
-Beeping is achieved with `pavlok.beep(opts);`.
-
-Vibrating is done with `pavlok.vibrate(opts);`. 
-
-Patterns are done with `pavlok.pattern(opts);`, with the special fields `pattern` and count in opts. `pattern` should be an array of strings (`beep`, `vibrate`, and `zap`) representing the pattern you wish to send. `count` is the number of times the pattern should be repeated.
 
 ### Further Reading
 See the [full documentation](https://github.com/Behavioral-Technology-Group/Pavlok_Node_Module/wiki) and [examples](https://github.com/Behavioral-Technology-Group/Pavlok-Node-Samples) for full documentation and a walkthrough. 

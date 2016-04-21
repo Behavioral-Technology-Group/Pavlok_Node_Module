@@ -42,6 +42,16 @@ var tokenFile = null; //A representation of the token file on disk
 var code = null; //The fetched auth code
 var loginCallback = null;
 
+
+function middlewareExists(app, name) {
+	//From http://stackoverflow.com/questions/26304234/check-if-a-given-middleware-is-being-used
+	//filter checks each element, and !! converts filter's return type (an array of booleans) to 
+	//a boolean type
+	return !!app._router.stack.filter(function (layer) { 
+		return layer && layer.handle && layer.handle.name === name; 
+    }).length;
+}
+
 function log(msg){
     if(VERBOSE) console.log("[Pavlok API] " + msg);
 }
@@ -154,6 +164,14 @@ exports.init = function(cId, cSecret, options){
 		isServer = true;
 		app = options.app;
 
+		//Setup needed middleware
+		if(!middlewareExists(app, "jsonParser")){
+			app.use(bodyParser.json());
+		}
+		if(!middlewareExists(app, "cookieParser")){
+			app.use(cookieParser());
+		}
+
 		//Setup matching options
 		if(options.callbackUrl !== undefined && typeof options.callbackUrl == "string"){
 			CALLBACK_URL = options.callbackUrl;
@@ -173,11 +191,7 @@ exports.init = function(cId, cSecret, options){
 		if(options.sessionSecret != undefined &&
 			typeof options.sessionSecret == "string"){
 			sessionSecret = options.sessionSecret;
-		} else {
-			logErr("Pavlok is configured as a server, but " +
-				"it is internally handling client token saving with a" +
-				" value that's insecure!");
-		}
+		} 
 		
 		//Setup server to handle sessions, if needed
 		if(options.handleSessions == undefined || typeof options.handleSessions != "boolean" 
@@ -539,7 +553,8 @@ function genericCall(route, options){
   */
 
 exports.pattern = function(options){
-    genericCall("pattern", {
+    if(options == undefined) options = {};
+	genericCall("pattern", {
 		intensity: options.value, 
 		message: options.message, 
 		callback: options.callback,
@@ -561,7 +576,8 @@ exports.pattern = function(options){
 	request if you're running as a server.
   */
 exports.beep = function(options){
-    genericCall("beep", {
+    if(options == undefined) options = {};
+	genericCall("beep", {
 		intensity: options.value, 
 		message: options.message, 
 		callback: options.callback,
@@ -581,7 +597,8 @@ exports.beep = function(options){
 	a string with the completion message), and request, the Express
 	request if you're running as a server.
  */
-exports.vibrate = function(value, message, callback){
+exports.vibrate = function(options){
+	if(options == undefined) options = {};
     genericCall("vibration", {
 		intensity: options.value, 
 		message: options.message, 
@@ -602,6 +619,7 @@ exports.vibrate = function(value, message, callback){
 	request if you're running as a server.
   */
 exports.zap = function(options){
+	if(options == undefined) options = {};	
     genericCall("shock", {
 		intensity: options.value, 
 		message: options.message, 
