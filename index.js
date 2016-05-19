@@ -479,7 +479,9 @@ function genericCall(route, options){
 	
 	var token = null;
 	if(isServer){
-		if(options.request == undefined || typeof options.request != "object"){
+		if(options.code != undefined && typeof options.code == "string"){
+			token = options.code;
+		} else if(options.request == undefined || typeof options.request != "object"){
 			callback(false, "No request object provided!");
 			return;
 		} else {
