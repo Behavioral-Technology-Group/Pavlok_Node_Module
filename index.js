@@ -35,13 +35,13 @@ var app;
 //Fields for usage as server
 var successUrl = "/success";
 var failureUrl = "/failure";
+var successWithCode = false;
 
 //Fields for usage as client
 var isSigningIn = false; //Are we signing in?
 var tokenFile = null; //A representation of the token file on disk
 var code = null; //The fetched auth code
 var loginCallback = null;
-
 
 function middlewareExists(app, name) {
 	//From http://stackoverflow.com/questions/26304234/check-if-a-given-middleware-is-being-used
@@ -211,6 +211,10 @@ exports.init = function(cId, cSecret, options){
 			successUrl = "/";
 		}
 
+		if(options.successWithCode !== undefined && options.successWithCode){
+			successWithCode = true;
+		}
+
 		if(options.errorPath !== undefined && typeof options.errorPath == "string"){
 			errorUrl = options.errorPath;
 		} else {
@@ -251,7 +255,7 @@ exports.init = function(cId, cSecret, options){
 						req.session.pavlok_token = token;
 						
 						//Redirect to done
-						res.redirect(successUrl);
+						res.redirect(successUrl + (successWithCode ? "?=" + token : ""));
 					}			
 				});
 		});
