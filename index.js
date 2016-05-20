@@ -255,7 +255,7 @@ exports.init = function(cId, cSecret, options){
 						req.session.pavlok_token = token;
 						
 						//Redirect to done
-						res.redirect(successUrl + (successWithCode ? "?=" + token : ""));
+						res.redirect(successUrl + (successWithCode ? "?code=" + token : ""));
 					}			
 				});
 		});
