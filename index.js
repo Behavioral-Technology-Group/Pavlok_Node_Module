@@ -564,6 +564,7 @@ exports.pattern = function(options){
 		intensity: options.value, 
 		message: options.message, 
 		callback: options.callback,
+		code: options.code,
 		request: options.request,
 		count: options.count,
 		pattern: options.pattern
@@ -587,7 +588,8 @@ exports.beep = function(options){
 		intensity: options.value, 
 		message: options.message, 
 		callback: options.callback,
-		request: options.request
+		request: options.request,
+		code: options.code
 	});
 }
 
@@ -609,7 +611,8 @@ exports.vibrate = function(options){
 		intensity: options.value, 
 		message: options.message, 
 		callback: options.callback,
-		request: options.request
+		request: options.request,
+		code: options.code
 	});
 }
 
@@ -630,6 +633,7 @@ exports.zap = function(options){
 		intensity: options.value, 
 		message: options.message, 
 		callback: options.callback,
-		request: options.request
+		request: options.request,
+		code: options.code
 	});
 }
