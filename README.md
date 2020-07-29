@@ -1,8 +1,33 @@
 # Pavlok API Module
 
 ### Purpose
-The Pavlok module makes it easy to play with your Pavlok through a Node enabled environment (local mode), and also to run simple Express web apps integrated with Pavlok (server mode).
+The Pavlok module makes it easy to play with your Pavlok device.
 
+It works in two modes
+- local development mode
+- server mode
+
+#### Local Mode 
+
+It can be used to play around with your device in a local development environment. It spins up a simple express server and needs permission to listen on one of your system's port.
+
+#### Server Mode
+
+It can be used to plug the module into your existing express server and build features/workflows for your pavlok device. 
+
+### Installation
+
+#### Using NPM
+
+```
+npm install --save pavlok
+```
+
+#### Using YARN
+
+```
+yarn add pavlok
+```
 Using this module requires permission to listen on one of your computer's ports (local mode only) or permission to run a server (server mode only) and a client ID/client secret. See [here](http://pavlok-mvp.herokuapp.com/oauth/applications) and login with your Pavlok account to get one. You'll need to choose a callback URL of "http://localhost:3000/auth/pavlok/result" for local mode (or some variation of that with a different port), though custom callback URLs are supported (and required!) for server mode.
 
 ### Setup
