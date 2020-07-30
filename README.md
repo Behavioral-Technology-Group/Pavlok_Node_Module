@@ -9,7 +9,7 @@ It works in two modes
 
 ### Local Mode 
 
-It can be used to play around with your device in a local development environment. It spins up a simple express server and needs permission to listen on one of your system's port.
+It can be used to play around with your device in a local development environment. It spins up a simple express server and needs permission to listen on one of your system's ports.
 
 ### Server Mode
 
@@ -39,7 +39,7 @@ Navigate [here](http://pavlok-mvp.herokuapp.com/oauth/applications) and login wi
 
 You'll need to choose a callback URL of `http://localhost:<PORT>/auth/pavlok/result` for local mode. Here, the `PORT` is the port you would like the module to run on in local mode. By default the value of `PORT` is `3000`.
 
-Custom callback URLs are supported in server mode and is **required** in while the module initialization.
+Custom callback URLs are supported in server mode and is **required** while the module initialization.
 
 ## Usage
 
@@ -85,7 +85,7 @@ pavlok.init(<Client ID>, <Client Secret>, {
 	"successUrl": "/success", //Where to redirect when the token has been saved to session
 	"errorUrl": "/error" //Where to redirect when the token couldn't be gotten/saved
 });
-app.get("/auth", function (req, res) { //
+app.get("/auth", function (req, res) {
 	pavlok.auth(req, res);
 });
 ```
