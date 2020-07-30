@@ -91,7 +91,22 @@ app.get("/auth", function (req, res) {
 });
 ```
 
-Now that you are authenticated, you can start sending the stimuli to your Pavlok device from the server
+Now that you are authenticated, you can start sending the stimuli to your Pavlok device from the server.
+
+Stimuli methods for the server mode take a required parameter in the options object i.e. `request`. It is the request object that an express server gets when one of it's api is called. Stimuli methods expects an authorization token stored on the request object to verify the user.
+
+So a simple call to one of the stimuli method would look like
+
+```
+// REQUEST is the request object in one of the express routes
+pavlok.vibrate({request: REQUEST});
+```
+
+You can send in more optional paramters to configure the device stimuli. For example, you can increase the zap intensity to it's maximum by using the following code
+
+```
+pavlok.zap({request:REQUEST, intensity: 255})
+```
 
 ### Further Reading
 See the [full documentation](https://github.com/Behavioral-Technology-Group/Pavlok_Node_Module/wiki) and [examples](https://github.com/Behavioral-Technology-Group/Pavlok-Node-Samples) for full documentation and a walkthrough. 
