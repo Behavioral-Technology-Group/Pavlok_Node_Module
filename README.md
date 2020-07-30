@@ -1,5 +1,5 @@
 # Pavlok API Module
-
+<a href="https://pavlok-developer-playground.herokuapp.com/" target="_blank"><img src="https://img.shields.io/badge/-Test%20On%20Pavlok%20Developer%20Playground-brightgreen?style=for-the-badge" /></a>
 ## Purpose
 The Pavlok module makes it easy to play with your Pavlok device.
 
@@ -61,7 +61,7 @@ pavlok.login(function (result, code) {
 });
 ```
 
-This spins up a server on Port `3000`, initializes the Pavlok module and logs you in. Now you can start sending the stimuli to your device.
+This spins up a server on port 3000.  (ex: http://localhost:3000/). It initializes the Pavlok module and logs you in. Now you can start sending the stimuli to your device.
 
 If you would like to configure a custom port for the local mode, you can do so by passing a custom options object as the third paramater to the `init` method. Make sure to mention the port in the callback URL of application you created [here](http://pavlok-mvp.herokuapp.com/oauth/applications)
 
