@@ -43,6 +43,12 @@ Custom callback URLs are supported in server mode and is **required** in while t
 
 ## Usage
 
+First thing you'd need to do is import the module into your app.
+
+```
+const pavlok = require('pavlok');
+```
+
 The simplest and quickest way to start using the module is to try it in the local mode.
 
 ```
@@ -67,7 +73,7 @@ pavlok.login(function (result, code) {
 });
 ```
 
-To Use the module in the server mode, you would need to pass a couple of more options in the the `init` method
+To Use the module in the server mode, you would need to pass a couple of more options in the the `init` method and ensure you call it before your server starts listening
 
 ```
 pavlok.init(<Client ID>, <Client Secret>, {
