@@ -27,7 +27,7 @@
     "cookie-parser": "^1.4.0",
     "cookie-session": "^2.0.0-alpha.1",
     "express": "^4.13.3",
-    "open": "0.0.5",
+    "open": "7.1.0",
     "request": "^2.67.0"
   },
   "devDependencies": {
