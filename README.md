@@ -52,10 +52,11 @@ const pavlok = require('pavlok');
 The simplest and quickest way to start using the module is to try it in the local mode.
 
 ```
-pavlok.init(<Client ID>, <Client Secret>);
+pavlok.init(CLIENT_ID, CLIENT_SECRET);
 pavlok.login(function (result, code) {
 	if (result) {
 		console.log("Code is " + code);
+		pavlok.vibrate(); // or you can call other methods like beep() or zap()
 	}
 });
 ```
@@ -65,7 +66,7 @@ This spins up a server on Port `3000`, initializes the Pavlok module and logs yo
 If you would like to configure a custom port for the local mode, you can do so by passing a custom options object as the third paramater to the `init` method. Make sure to mention the port in the callback URL of application you created [here](http://pavlok-mvp.herokuapp.com/oauth/applications)
 
 ```
-pavlok.init(<Client ID>, <Client Secret>, { "port": 8080 }); // runs on port 8080
+pavlok.init(CLIENT_ID, CLIENT_SECRET, { "port": 8080 }); // runs on port 8080
 pavlok.login(function (result, code) {
 	if (result) {
 		console.log("Code is " + code);
@@ -76,7 +77,7 @@ pavlok.login(function (result, code) {
 To Use the module in the server mode, you would need to pass a couple of more options in the the `init` method and ensure you call it before your server starts listening
 
 ```
-pavlok.init(<Client ID>, <Client Secret>, {
+pavlok.init(CLIENT_ID, CLIENT_SECRET, {
 	"verbose": true,
 	"app": app, //Express server
 	"message": "Hello from the server example!", //Default message for all stimuli
