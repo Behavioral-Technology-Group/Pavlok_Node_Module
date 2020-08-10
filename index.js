@@ -47,6 +47,11 @@ function middlewareExists(app, name) {
 	//From http://stackoverflow.com/questions/26304234/check-if-a-given-middleware-is-being-used
 	//filter checks each element, and !! converts filter's return type (an array of booleans) to 
 	//a boolean type
+
+	if (!app._router) {
+		return false
+	}
+
 	return !!app._router.stack.filter(function (layer) { 
 		return layer && layer.handle && layer.handle.name === name; 
     }).length;
