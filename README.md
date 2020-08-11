@@ -115,6 +115,10 @@ You can send in more optional paramters to configure the device stimuli. For exa
 pavlok.zap({request:REQUEST, intensity: 255})
 ```
 
+Here's short gif on how to use the pavlok module in server mode
+
+![server mode pavlok module - yarn](server-mode.gif)
+
 ### Further Reading
 See the [full documentation](https://github.com/Behavioral-Technology-Group/Pavlok_Node_Module/wiki) and [examples](https://github.com/Behavioral-Technology-Group/Pavlok-Node-Samples) for full documentation and a walkthrough. 
 
