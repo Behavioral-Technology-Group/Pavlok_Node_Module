@@ -73,6 +73,13 @@ pavlok.login(function (result, code) {
 	}
 });
 ```
+Here's short gif on how to use the pavlok module in local mode
+
+![Local mode pavlok module - yarn](yarn-local.gif)
+
+Or, if you prefer NPM, here's how you can add it to your npm project
+
+![Local mode pavlok module - npm](npm-local.gif)
 
 To Use the module in the server mode, you would need to pass a couple of more options in the the `init` method and ensure you call it before your server starts listening
 

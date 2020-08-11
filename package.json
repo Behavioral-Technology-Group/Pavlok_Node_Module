@@ -1,6 +1,6 @@
 {
   "name": "pavlok",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A module to connect with Pavlok's API easily and quickly.",
   "main": "index.js",
   "scripts": {
