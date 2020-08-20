@@ -90,8 +90,8 @@ pavlok.init(CLIENT_ID, CLIENT_SECRET, {
 	"message": "Hello from the server example!", //Default message for all stimuli
 	"callbackUrl": "<Your Server Root URL>/pavlok/result",
 	"callbackUrlPath": "/pavlok/result",
-	"successUrl": "/success", //Where to redirect when the token has been saved to session
-	"errorUrl": "/error" //Where to redirect when the token couldn't be gotten/saved
+	"successPath": "/success", //Where to redirect when the token has been saved to session
+	"failurePath": "/error" //Where to redirect when the token couldn't be gotten/saved
 });
 app.get("/auth", function (req, res) {
 	pavlok.auth(req, res);
