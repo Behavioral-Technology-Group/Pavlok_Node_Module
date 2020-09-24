@@ -288,10 +288,11 @@ exports.init = function (cId, cSecret, options) {
             res.redirect(errorUrl);
           } else {
             var codeResponse = JSON.parse(body);
+            
             var token = codeResponse.access_token;
 
             req.session.pavlok_token = token;
-
+            req.session.pavlok_user = codeResponse;
             //Redirect to done
             res.redirect(
               successUrl + (successWithCode ? "?code=" + token : "")
