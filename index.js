@@ -731,7 +731,7 @@ exports.zap = function (options) {
   });
 };
 
-exports.me = function (callback) {
+exports.me = function (options, callback) {
   var route = "";
 
   var token = null;
