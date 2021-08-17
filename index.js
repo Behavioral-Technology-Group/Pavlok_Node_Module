@@ -16,7 +16,8 @@ var cookieSession = require("cookie-session");
 var request = require("request");
 
 //'Constants' (can be altered with the options bundle/init)
-var BASE_URL = "http://pavlok-mvp.herokuapp.com";
+// var BASE_URL = "http://pavlok-mvp.herokuapp.com";// has changed the baseUrl
+var BASE_URL = "https://app.pavlok.com?";
 var PORT = 3000;
 var TOKEN_FILENAME = __dirname + "/pavlok-token.json";
 var VERBOSE = false;
@@ -811,7 +812,8 @@ exports.steps = function (callback) {
     token = code;
   }
 
-  var address = "https://pavlok-mvp.herokuapp.com/api/v2/fitness/steps";
+  // var address = "https://pavlok-mvp.herokuapp.com/api/v2/fitness/steps";// has changed the baseUrl
+  var address = "https://app.pavlok.com?/api/v2/fitness/steps";
   var queryParams = {
     access_token: token,
     from: "2020-08-01",
@@ -854,7 +856,8 @@ const stimulusPaths = {
 }
 const v1Stimulus = async (accessToken, type, value, message) => {
   // v1 Stimulus removes duplication for each type
-  const host = "https://pavlok-mvp.herokuapp.com";
+  // const host = "https://pavlok-mvp.herokuapp.com";// has changed the baseUrl
+  const host = "https://app.pavlok.com?";
   const url = `${host}${stimulusPaths[type]}/${value}`;
   const body = JSON.stringify({
     "access_token": accessToken,
