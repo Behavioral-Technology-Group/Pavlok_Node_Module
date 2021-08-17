@@ -16,7 +16,8 @@ var cookieSession = require("cookie-session");
 var request = require("request");
 
 //'Constants' (can be altered with the options bundle/init)
-var BASE_URL = "http://pavlok-mvp.herokuapp.com";
+// var BASE_URL = "http://pavlok-mvp.herokuapp.com";// has changed the baseUrl
+var BASE_URL = "https://app.pavlok.com?";
 var PORT = 3000;
 var TOKEN_FILENAME = __dirname + "/pavlok-token.json";
 var VERBOSE = false;
@@ -108,39 +109,39 @@ var exports = (module.exports = {});
   @param {String} Client ID - The OAuth2 client ID.
   @param {String} Client secret - The OAuth2 client secret.
   @param {Object} options - Custom setup options. There are several possible
-		options, depending on the type of setup.
-	   
-		Shared between client/server:
-		- apiUrl (string, optional) - The Pavlok API to query (default is fine).
-		- verbose (boolean, optional) - Whether to enable verbose logging.
-		- message (string, optional) - The default message to send with stimuli.
-		- app (object, optional) - The Express app to setup to be a server. If
-			present, the module will setup in server mode; if not, the module will
-			setup in local mode.
+    options, depending on the type of setup.
+     
+    Shared between client/server:
+    - apiUrl (string, optional) - The Pavlok API to query (default is fine).
+    - verbose (boolean, optional) - Whether to enable verbose logging.
+    - message (string, optional) - The default message to send with stimuli.
+    - app (object, optional) - The Express app to setup to be a server. If
+      present, the module will setup in server mode; if not, the module will
+      setup in local mode.
 
-		In server mode:
-		- callbackUrl (string) - The callback URL associated with your CID/CSecret.
-		- callbackUrlStub (string) - The path of your callback URL relative to 
-			your root (e.g. "/pavlok/postauth").
-		- successPath (string) - The relative path to redirect to after a 
-			successful authorization.
-		- failurePath (string) - The relative path to redirect to after a 
-			failed authorization.
-		- handleSessions (boolean, optional) - Whether the module should setup
-			a request.session(...) for you. Defaults to true. If you do this 
-			yourself, you must make sure request.session exists for this module
-			to use.
-		- sessionSecret (string, optional) - The secret to secure a user's 
-			session with.
+    In server mode:
+    - callbackUrl (string) - The callback URL associated with your CID/CSecret.
+    - callbackUrlStub (string) - The path of your callback URL relative to 
+      your root (e.g. "/pavlok/postauth").
+    - successPath (string) - The relative path to redirect to after a 
+      successful authorization.
+    - failurePath (string) - The relative path to redirect to after a 
+      failed authorization.
+    - handleSessions (boolean, optional) - Whether the module should setup
+      a request.session(...) for you. Defaults to true. If you do this 
+      yourself, you must make sure request.session exists for this module
+      to use.
+    - sessionSecret (string, optional) - The secret to secure a user's 
+      session with.
 
-		In client mode (note that in client mode, the callback URL you must
-		register with your client ID/client secret is
-	   	"http://localhost:PORT_YOU_CHOOSE/auth/pavlok/result".
-		- save (boolean, optional) - Whether to save access tokens between sessions.
-		- tokenFile (string, optional) - The name of the token file.
-		- port (number, optional) - The port to run the client server for fetching
-			auth tokens on. Defaults to 3000; running under 1024 might need root
-			priveleges on some systems. 
+    In client mode (note that in client mode, the callback URL you must
+    register with your client ID/client secret is
+        "http://localhost:PORT_YOU_CHOOSE/auth/pavlok/result".
+    - save (boolean, optional) - Whether to save access tokens between sessions.
+    - tokenFile (string, optional) - The name of the token file.
+    - port (number, optional) - The port to run the client server for fetching
+      auth tokens on. Defaults to 3000; running under 1024 might need root
+      priveleges on some systems. 
  **/
 exports.init = function (cId, cSecret, options) {
   if (
@@ -284,11 +285,11 @@ exports.init = function (cId, cSecret, options) {
           if (error) {
             try {
               logErr(JSON.stringify(error));
-            } catch (e) {}
+            } catch (e) { }
             res.redirect(errorUrl);
           } else {
             var codeResponse = JSON.parse(body);
-            
+
             var token = codeResponse.access_token;
 
             req.session.pavlok_token = token;
@@ -325,7 +326,7 @@ exports.init = function (cId, cSecret, options) {
       try {
         createTokenFile();
         tokenFile = JSON.parse(fs.readFileSync(TOKEN_FILENAME, "utf8"));
-      } catch (ignored) {} //Will happen on systems without file I/O access
+      } catch (ignored) { } //Will happen on systems without file I/O access
     }
 
     if (tokenFile.token != null) {
@@ -341,11 +342,11 @@ exports.init = function (cId, cSecret, options) {
     app.get("/auth/pavlok", function (req, res) {
       res.redirect(
         BASE_URL +
-          "/oauth/authorize?client_id=" +
-          CLIENT_ID +
-          "&redirect_uri=" +
-          CALLBACK_URL +
-          "&response_type=code"
+        "/oauth/authorize?client_id=" +
+        CLIENT_ID +
+        "&redirect_uri=" +
+        CALLBACK_URL +
+        "&response_type=code"
       ); //Redirect to Pavlok server to authorize
     });
     app.get("/auth/pavlok/result", function (req, res) {
@@ -378,7 +379,7 @@ exports.init = function (cId, cSecret, options) {
           if (error) {
             try {
               logErr(JSON.stringify(error));
-            } catch (e) {}
+            } catch (e) { }
             res.redirect("/error");
             server.close();
             loginCallback(false, null);
@@ -461,11 +462,11 @@ exports.auth = function (request, result, options) {
   }
   result.redirect(
     BASE_URL +
-      "/oauth/authorize?client_id=" +
-      CLIENT_ID +
-      "&redirect_uri=" +
-      CALLBACK_URL +
-      "&response_type=code"
+    "/oauth/authorize?client_id=" +
+    CLIENT_ID +
+    "&redirect_uri=" +
+    CALLBACK_URL +
+    "&response_type=code"
   ); //Redirect to Pavlok server to authorize
 };
 
@@ -474,10 +475,10 @@ exports.auth = function (request, result, options) {
  * @param request - The Express request. 
  * @param result - The Express result. Only needed if being used as middleware.
  * @param next - The next piece of middleware. Again, only needed if being used
-				 as middleware.
+         as middleware.
  * @return - Returns whether user is logged in. If used as middleware, will
-			 automatically call auth with "/pavlok/success" and
-			 "/pavlok/failure" success/error redirect paths.
+       automatically call auth with "/pavlok/success" and
+       "/pavlok/failure" success/error redirect paths.
  */
 exports.isLoggedIn = function (request, result, next) {
   if (
@@ -524,7 +525,7 @@ function genericCall(route, options) {
   if (options.intensity !== undefined && typeof options.intensity == "number") {
     intensity = options.intensity;
   }
-  var callback = function (res, reason) {};
+  var callback = function (res, reason) { };
   if (options.callback !== undefined && typeof options.callback == "function") {
     callback = options.callback;
   }
@@ -641,15 +642,15 @@ function genericCall(route, options) {
 /**
   * Send a pattern to a Pavlok.
   * @param options - Ways to adjust the pattern, all optional except
-	for request if you're running as a server. intensity is a number
-	from 1-255 that controls the stimuli's intensity, message is a 
-	string that controls the message sent with the stimuli, callback
-	is the callback after the stimuli's completion (i.e. a function
-	that takes two arguments, a boolean indicating success/failure, and
-	a string with the completion message), count is the number of times
-	to repeat the pattern, pattern is the pattern as an array of strings
-	(e.g. [ "beep", "zap", "vibrate"]), and request is the Express
-	request if you're running as a server.
+  for request if you're running as a server. intensity is a number
+  from 1-255 that controls the stimuli's intensity, message is a 
+  string that controls the message sent with the stimuli, callback
+  is the callback after the stimuli's completion (i.e. a function
+  that takes two arguments, a boolean indicating success/failure, and
+  a string with the completion message), count is the number of times
+  to repeat the pattern, pattern is the pattern as an array of strings
+  (e.g. [ "beep", "zap", "vibrate"]), and request is the Express
+  request if you're running as a server.
   */
 
 exports.pattern = function (options) {
@@ -668,13 +669,13 @@ exports.pattern = function (options) {
 /**
   * Beep a Pavlok.
   * @param options - Ways to adjust the beep, all optional except
-	for request if you're running as a server. intensity is a number
-	from 1-255 that controls the stimuli's intensity, message is a 
-	string that controls the message sent with the stimuli, callback
-	is the callback after the stimuli's completion (i.e. a function
-	that takes two arguments, a boolean indicating success/failure, and
-	a string with the completion message), and request, the Express
-	request if you're running as a server.
+  for request if you're running as a server. intensity is a number
+  from 1-255 that controls the stimuli's intensity, message is a 
+  string that controls the message sent with the stimuli, callback
+  is the callback after the stimuli's completion (i.e. a function
+  that takes two arguments, a boolean indicating success/failure, and
+  a string with the completion message), and request, the Express
+  request if you're running as a server.
   */
 exports.beep = function (options) {
   if (options == undefined) options = {};
@@ -691,13 +692,13 @@ exports.beep = function (options) {
   * Vibrate a Pavlok.
   * @param value - The intensity of vibration between 1-255.
   * @param options - Ways to adjust the vibration, all optional except
-	for request if you're running as a server. intensity is a number
-	from 1-255 that controls the stimuli's intensity, message is a 
-	string that controls the message sent with the stimuli, callback
-	is the callback after the stimuli's completion (i.e. a function
-	that takes two arguments, a boolean indicating success/failure, and
-	a string with the completion message), and request, the Express
-	request if you're running as a server.
+  for request if you're running as a server. intensity is a number
+  from 1-255 that controls the stimuli's intensity, message is a 
+  string that controls the message sent with the stimuli, callback
+  is the callback after the stimuli's completion (i.e. a function
+  that takes two arguments, a boolean indicating success/failure, and
+  a string with the completion message), and request, the Express
+  request if you're running as a server.
  */
 exports.vibrate = function (options) {
   if (options == undefined) options = {};
@@ -713,13 +714,13 @@ exports.vibrate = function (options) {
 /**
   * Zap with a Pavlok.
   * @param options - Ways to adjust the zap, all optional except
-	for request if you're running as a server. intensity is a number
-	from 1-255 that controls the stimuli's intensity, message is a 
-	string that controls the message sent with the stimuli, callback
-	is the callback after the stimuli's completion (i.e. a function
-	that takes two arguments, a boolean indicating success/failure, and
-	a string with the completion message), and request, the Express
-	request if you're running as a server.
+  for request if you're running as a server. intensity is a number
+  from 1-255 that controls the stimuli's intensity, message is a 
+  string that controls the message sent with the stimuli, callback
+  is the callback after the stimuli's completion (i.e. a function
+  that takes two arguments, a boolean indicating success/failure, and
+  a string with the completion message), and request, the Express
+  request if you're running as a server.
   */
 exports.zap = function (options) {
   if (options == undefined) options = {};
@@ -811,7 +812,8 @@ exports.steps = function (callback) {
     token = code;
   }
 
-  var address = "https://pavlok-mvp.herokuapp.com/api/v2/fitness/steps";
+  // var address = "https://pavlok-mvp.herokuapp.com/api/v2/fitness/steps";// has changed the baseUrl
+  var address = "https://app.pavlok.com?/api/v2/fitness/steps";
   var queryParams = {
     access_token: token,
     from: "2020-08-01",
@@ -846,3 +848,42 @@ exports.steps = function (callback) {
     }
   );
 };
+
+const stimulusPaths = {
+  vibrate: "/api/v1/vibrate",
+  beep: "/api/v1/beep",
+  zap: "/api/v1/shock"
+}
+const v1Stimulus = async (accessToken, type, value, message) => {
+  // v1 Stimulus removes duplication for each type
+  // const host = "https://pavlok-mvp.herokuapp.com";// has changed the baseUrl
+  const host = "https://app.pavlok.com?";
+  const url = `${host}${stimulusPaths[type]}/${value}`;
+  const body = JSON.stringify({
+    "access_token": accessToken,
+    "reason": message
+  });
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  // no await, as that might or might not be desirable
+  return fetch(url, {
+    method: "POST",
+    headers: headers,
+    body: body,
+    redirect: "follow"
+  });
+}
+export const Pavlok = {
+  // client to keep token
+  client: (accessToken) => {
+    return {
+      vibrate: (value, message) => v1Stimulus(accessToken, "vibrate", value, message),
+      beep: (value, message) => v1Stimulus(accessToken, "beep", value, message),
+      zap: (value, message) => v1Stimulus(accessToken, "zap", value, message)
+    }
+  },
+  // independent stimuli
+  vibrate: (accessToken, value, message) => v1Stimulus(accessToken, "vibrate", value, message),
+  beep: (accessToken, value, message) => v1Stimulus(accessToken, "beep", value, message),
+  zap: (accessToken, value, message) => v1Stimulus(accessToken, "zap", value, message)
+}
