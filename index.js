@@ -16,7 +16,7 @@ var cookieSession = require("cookie-session");
 var request = require("request");
 
 //'Constants' (can be altered with the options bundle/init)
-var BASE_URL = "http://pavlok-mvp.herokuapp.com";
+var BASE_URL = "https://app.pavlok.com";
 var PORT = 3000;
 var TOKEN_FILENAME = __dirname + "/pavlok-token.json";
 var VERBOSE = false;
